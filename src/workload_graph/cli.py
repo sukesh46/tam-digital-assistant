@@ -41,6 +41,8 @@ def _parser() -> argparse.ArgumentParser:
     ui.add_argument("--port", type=int, default=8765)
     ui.add_argument("--external-id", default=None,
                     help="deployed mode: assume TamReadOnly in up to 20 member accounts")
+    ui.add_argument("--runs-dir", type=Path, default=Path("out/runs"),
+                    help="where runs and decisions are kept (gitignored)")
     return parser
 
 
@@ -74,7 +76,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "ui":
         from workload_graph.ui_server import serve
 
-        serve(args.port, external_id=args.external_id)
+        serve(args.port, external_id=args.external_id, runs_dir=args.runs_dir)
         return 0
     try:
         if args.command == "build":

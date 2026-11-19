@@ -12,7 +12,7 @@ Notes:
     - Event details carry codes only (for example ``AccessDenied``), never exception messages,
       because messages can contain account ids or ARNs.
     - ``AWAITING_REVIEW`` and ``FAILED`` are settled. A stream ends when the job settles.
-    - No persistence yet. Local storage under ``out/runs/`` is a later step.
+    - Persistence lives in ``runstore.py``. ``restore`` rebuilds a job from what was saved.
 """
 
 from __future__ import annotations
@@ -55,15 +55,32 @@ class Job:
     """Thread-safe progress log for one run."""
 
     def __init__(self, job_id: str, accounts: tuple[str, ...],
-                 clock: Callable[[], datetime] = _utc_now) -> None:
+                 clock: Callable[[], datetime] = _utc_now, region: str = "") -> None:
         self.job_id = job_id
         self.accounts = accounts
+        self.region = region
         self._clock = clock
+        self.created_at = clock()
         self._cond = threading.Condition()
         self._events: list[JobEvent] = []
         self._state = JobState.QUEUED
         self._result: BuildResult | None = None
         self._decisions: dict[str, str] = {}
+
+    @classmethod
+    def restore(cls, job_id: str, accounts: tuple[str, ...], region: str, created_at: datetime,
+                state: JobState, events: list[JobEvent], result: BuildResult | None,
+                decisions: dict[str, str]) -> Job:
+        """Rebuild a saved job. A job saved before it settled comes back ``FAILED``."""
+        job = cls(job_id, accounts, region=region)
+        job.created_at = created_at
+        job._events = list(events)
+        job._result = result
+        job._decisions = dict(decisions)
+        job._state = state
+        if state not in _SETTLED:
+            job.transition(JobState.FAILED, "failed", "interrupted")
+        return job
 
     @property
     def state(self) -> JobState:

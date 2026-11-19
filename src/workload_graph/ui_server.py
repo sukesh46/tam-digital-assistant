@@ -5,7 +5,7 @@ Purpose: serve the black-and-white page, start runs, stream their progress by lo
     record the TAM's approve or reject decision per workload.
 Inputs: HTTP on 127.0.0.1. Account ids come from the request and are never written to the project.
 Outputs: the page; JSON for ``POST /api/jobs``, ``GET /api/jobs/<id>``,
-    ``POST /api/jobs/<id>/review``; and the legacy ``POST /api/build``.
+    ``POST /api/jobs/<id>/review``, ``GET /api/runs``; and the legacy ``POST /api/build``.
 Planned dependencies: runs, jobs, live.
 Notes:
     - The route functions return ``(status, body)`` and do not touch the socket, so tests call them
@@ -29,6 +29,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 from workload_graph.jobs import Job
 from workload_graph.live import build_account
 from workload_graph.runs import AmbientPlanner, AssumedRolePlanner, Runs
+from workload_graph.runstore import RunStore
 
 _PAGE = Path(__file__).resolve().parent / "ui" / "index.html"
 _HOST = "127.0.0.1"
@@ -101,10 +102,16 @@ def review_workload(runs: Runs, job_id: str, payload: object) -> Reply:
     if not isinstance(payload, dict):
         return 400, {"error": "request body must be an object"}
     try:
-        job.decide(str(payload.get("workload_id", "")), str(payload.get("decision", "")))
+        runs.decide(job_id, str(payload.get("workload_id", "")),
+                    str(payload.get("decision", "")))
     except ValueError as exc:
         return 400, {"error": str(exc)}
     return 200, {"decisions": job.decisions}
+
+
+def list_runs(runs: Runs) -> Reply:
+    """Summaries of every known run, newest first."""
+    return 200, {"runs": runs.list()}
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -122,6 +129,9 @@ class _Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+            return
+        if parts.path == "/api/runs" and self.runs is not None:
+            self._json(*list_runs(self.runs))
             return
         match = _JOB_PATH.match(parts.path)
         if match is None or match.group(2) or self.runs is None:
@@ -199,14 +209,15 @@ class _Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
-def serve(port: int = 8765, external_id: str | None = None) -> None:
+def serve(port: int = 8765, external_id: str | None = None,
+          runs_dir: Path = Path("out/runs")) -> None:
     """Serve the page on localhost until stopped.
 
     Without ``external_id`` the server reads one account with the ambient credential (test pad).
     With it, runs may include up to 20 accounts through ``TamReadOnly`` (deployed mode).
     """
     planner = AssumedRolePlanner(external_id) if external_id else AmbientPlanner()
-    runs = Runs(planner)
+    runs = Runs(planner, store=RunStore(runs_dir))
     handler = type("Handler", (_Handler,), {"runs": runs})
     server = ThreadingHTTPServer((_HOST, port), handler)
     print(f"open http://{_HOST}:{port}", flush=True)

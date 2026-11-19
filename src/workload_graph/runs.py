@@ -9,7 +9,8 @@ Planned dependencies: credentials, fanout, jobs, live.
 Notes:
     - ``prepare`` runs synchronously and may refuse (wrong account, bad mode). Refusals reach the
       caller before any job exists, so no half-started run is left behind.
-    - Runs are held in memory. Local persistence under ``out/runs/`` is a later step.
+    - Runs are held in memory and, when a ``RunStore`` is given, saved under ``out/runs/`` at
+      start, when they settle and on every decision. A new registry loads them back.
     - ``threaded=False`` runs the job inline. Tests use it so they stay deterministic.
 """
 
@@ -41,6 +42,7 @@ from workload_graph.fanout import (
 )
 from workload_graph.jobs import Job
 from workload_graph.ruleset import Ruleset
+from workload_graph.runstore import RunStore
 
 
 def _sts_for(region: str) -> Any:
@@ -95,25 +97,34 @@ class Runs:
     """In-memory registry of runs. Each run is one ``Job``."""
 
     def __init__(self, planner: RunPlanner, *, threaded: bool = True,
-                 workers: int = DEFAULT_WORKERS, ruleset: Ruleset | None = None) -> None:
+                 workers: int = DEFAULT_WORKERS, ruleset: Ruleset | None = None,
+                 store: RunStore | None = None) -> None:
         self._planner = planner
         self._threaded = threaded
         self._workers = workers
         self._ruleset = ruleset or Ruleset()
+        self._store = store
         self._lock = threading.Lock()
         self._jobs: dict[str, Job] = {}
+        if store is not None:
+            for job in store.load_all():
+                self._jobs[job.job_id] = job
 
     def start(self, account_ids: Iterable[str], region: str) -> Job:
         """Validate, plan, register and run. ``ValueError`` is raised before any job exists."""
         accounts = normalise_account_ids(account_ids)
         validate_region(region)
         collect = self._planner.prepare(accounts, region)
-        job = Job(uuid.uuid4().hex, accounts)
+        job = Job(uuid.uuid4().hex, accounts, region=region)
         with self._lock:
             self._jobs[job.job_id] = job
+        self._save(job)
 
         def work() -> None:
-            run_fanout(job, accounts, region, collect, self._ruleset, workers=self._workers)
+            try:
+                run_fanout(job, accounts, region, collect, self._ruleset, workers=self._workers)
+            finally:
+                self._save(job)
 
         if self._threaded:
             threading.Thread(target=work, name=f"run-{job.job_id[:8]}", daemon=True).start()
@@ -124,3 +135,37 @@ class Runs:
     def get(self, job_id: str) -> Job | None:
         with self._lock:
             return self._jobs.get(job_id)
+
+    def decide(self, job_id: str, workload_id: str, decision: str) -> Job:
+        """Record approve or reject and save it. ``KeyError`` for an unknown run."""
+        job = self.get(job_id)
+        if job is None:
+            raise KeyError(job_id)
+        job.decide(workload_id, decision)
+        self._save(job)
+        return job
+
+    def list(self) -> list[dict[str, Any]]:
+        """One summary per run, newest first."""
+        with self._lock:
+            jobs = list(self._jobs.values())
+        jobs.sort(key=lambda j: (j.created_at, j.job_id), reverse=True)
+        summaries: list[dict[str, Any]] = []
+        for job in jobs:
+            result = job.result
+            decisions = job.decisions
+            summaries.append({
+                "job_id": job.job_id,
+                "accounts": list(job.accounts),
+                "region": job.region,
+                "created_at": job.created_at.isoformat(),
+                "state": job.state.value,
+                "workloads": 0 if result is None else len(result.workloads),
+                "approved": sum(1 for d in decisions.values() if d == "approve"),
+                "rejected": sum(1 for d in decisions.values() if d == "reject"),
+            })
+        return summaries
+
+    def _save(self, job: Job) -> None:
+        if self._store is not None:
+            self._store.save(job)

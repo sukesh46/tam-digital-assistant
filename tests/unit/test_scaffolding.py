@@ -61,6 +61,7 @@ MODULES = [
     "workload_graph.jobs",
     "workload_graph.fanout",
     "workload_graph.runs",
+    "workload_graph.runstore",
     "workload_graph.ui_server",
     "workload_graph.cli",
     "workload_graph.logging_setup",
