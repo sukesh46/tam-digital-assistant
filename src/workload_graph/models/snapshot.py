@@ -3,7 +3,7 @@
 Status: real
 Purpose: replayable record of exactly what a collector saw (D8).
 Inputs: collector output or JSON files on disk.
-Outputs: ``RawSnapshot``, ``SourceName``, ``SnapshotStatus``, ``SOURCES``.
+Outputs: ``RawSnapshot``, ``SourceName``, ``SnapshotStatus``, ``SOURCES``, ``COST_SOURCES``.
 Planned dependencies: pydantic.
 Notes: payload maps operation name to the list of response pages. Payload keys and page keys
     starting with ``_`` are collector metadata (for example request context such as the
@@ -19,9 +19,12 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, field_validator
 
 from workload_graph.ids import AccountId
 
-SourceName = Literal["tags", "stacks", "topology", "cloudtrail"]
+SourceName = Literal["tags", "stacks", "topology", "cloudtrail", "cost_explorer",
+                     "cost_optimization_hub"]
 SnapshotStatus = Literal["ok", "empty", "denied", "partial", "error"]
+# The graph sources. The cost sources are read by the findings pipeline only.
 SOURCES: tuple[SourceName, ...] = ("cloudtrail", "stacks", "tags", "topology")
+COST_SOURCES: tuple[SourceName, ...] = ("cost_explorer", "cost_optimization_hub")
 
 
 class RawSnapshot(BaseModel):

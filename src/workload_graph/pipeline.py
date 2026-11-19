@@ -18,7 +18,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from workload_graph.graph.build import build_workloads
-from workload_graph.models import SOURCES, BuildResult, RawSnapshot, Workspace
+from workload_graph.models import COST_SOURCES, SOURCES, BuildResult, RawSnapshot, Workspace
 from workload_graph.normalisers import normalise
 from workload_graph.probe import probe_sources
 from workload_graph.ruleset import Ruleset
@@ -26,6 +26,7 @@ from workload_graph.store.memory import InMemoryGraphStore
 
 _ACCOUNT_DIR = re.compile(r"^[0-9]{12}$")
 _SOURCES = set(SOURCES)
+_COST_SOURCES = set(COST_SOURCES)
 
 
 def load_snapshots(snapshots_dir: Path) -> tuple[list[RawSnapshot], list[str]]:
@@ -41,6 +42,8 @@ def load_snapshots(snapshots_dir: Path) -> tuple[list[RawSnapshot], list[str]]:
             continue
         for path in sorted(account_dir.glob("*.json")):
             relative = f"{account_dir.name}/{path.name}"
+            if path.stem in _COST_SOURCES:
+                continue  # read by the findings pipeline, not the graph build
             if path.stem not in _SOURCES:
                 notes.append(f"ignored {relative}: not a known source")
                 continue

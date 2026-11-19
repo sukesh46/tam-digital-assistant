@@ -79,6 +79,10 @@ class OperationFailedError(_OperationError):
     """An operation failed for another reason."""
 
 
+class NotEnabledError(_OperationError):
+    """The feature behind an operation is switched off (opt-in not done)."""
+
+
 class ConnectionFailedError(OperationFailedError):
     """The endpoint could not be reached (DNS, connect or timeout).
 
@@ -148,10 +152,13 @@ class CallRecorder:
     """Performs calls with allowlist, retry and budget; records pages, notes and outcomes."""
 
     def __init__(self, scope: CollectionScope, sleep: SleepFn,
-                 allowed: frozenset[str]) -> None:
+                 allowed: frozenset[str],
+                 not_enabled: Callable[[str, str], bool] | None = None) -> None:
         self.scope = scope
         self._sleep = sleep
         self._allowed = allowed
+        # (code, message) -> True when the error means "switched off", checked before denial.
+        self._not_enabled = not_enabled
         self.calls = 0
         self.operations_called: list[str] = []
         # Any: pages are raw boto3 response dicts.
@@ -182,6 +189,9 @@ class CallRecorder:
                 response: dict[str, Any] = method(**kwargs)
             except ClientError as exc:
                 code = str(exc.response.get("Error", {}).get("Code", "Unknown"))
+                message = str(exc.response.get("Error", {}).get("Message", ""))
+                if self._not_enabled is not None and self._not_enabled(code, message):
+                    raise NotEnabledError(operation, code) from None
                 if code in ACCESS_DENIED_CODES:
                     self._denied.add(operation)
                     raise OperationDeniedError(operation, code) from None
@@ -234,6 +244,10 @@ class CallRecorder:
             self.notes.append(f"call budget of {self.scope.max_calls} calls exhausted "
                               f"during {label}")
             return False
+        except NotEnabledError as exc:
+            self.outcomes.append("not_enabled")
+            self.notes.append(f"{exc.operation}: not enabled ({exc.code})")
+            return True
         except OperationDeniedError as exc:
             self.outcomes.append("denied")
             self.notes.append(f"{exc.operation}: access denied ({exc.code})")

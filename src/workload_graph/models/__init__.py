@@ -18,7 +18,13 @@ from workload_graph.models.edge import (
 from workload_graph.models.evidence import Evidence
 from workload_graph.models.probe import ProbeEntry, ProbeResult, SourceAvailability
 from workload_graph.models.resource import ExternalReason, ExternalRef, Resource
-from workload_graph.models.snapshot import SOURCES, RawSnapshot, SnapshotStatus, SourceName
+from workload_graph.models.snapshot import (
+    COST_SOURCES,
+    SOURCES,
+    RawSnapshot,
+    SnapshotStatus,
+    SourceName,
+)
 from workload_graph.models.workload import (
     BuildResult,
     CandidateWorkload,
@@ -36,6 +42,7 @@ from workload_graph.models.workspace import Workspace
 
 __all__ = [
     "CONTAINER_EDGE_TYPES",
+    "COST_SOURCES",
     "GROUPING_EDGE_TYPES",
     "HUB_EDGE_TYPES",
     "SOURCES",
