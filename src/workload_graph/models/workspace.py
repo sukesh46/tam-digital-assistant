@@ -25,8 +25,8 @@ class Workspace(BaseModel):
     customer: str
     approved_account_ids: list[AccountId]
     regions: list[str] = []
-    # SKELETON: default read-only role name; the real name is agreed per customer.
-    role_name: str = "WorkloadGraphReadOnly"
+    # Fixed name for every member account (D40). Customers create one role with this name.
+    role_name: str = "TamReadOnly"
     external_id: str | None = None
 
     def is_approved(self, account_id: str) -> bool:

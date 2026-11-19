@@ -39,6 +39,8 @@ def _parser() -> argparse.ArgumentParser:
     sub.add_parser("collect", help="live collection is not wired")
     ui = sub.add_parser("ui", help="open the local workload graph page")
     ui.add_argument("--port", type=int, default=8765)
+    ui.add_argument("--external-id", default=None,
+                    help="deployed mode: assume TamReadOnly in up to 20 member accounts")
     return parser
 
 
@@ -72,7 +74,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "ui":
         from workload_graph.ui_server import serve
 
-        serve(args.port)
+        serve(args.port, external_id=args.external_id)
         return 0
     try:
         if args.command == "build":

@@ -17,7 +17,7 @@
 | types-networkx | 3.6.1.20261114 |
 | pyarrow (optional extra) | 26.0.1 |
 
-`make check` (ruff, strict mypy, pytest): **461 passed, 0 skipped, 0 failed**. Line coverage of `src/workload_graph` is 97%. `graph/`, `normalisers/`, `models/`, `ids.py` and `ruleset.py` are each above 90% (`normalisers/topology.py` is 91%, `normalisers/cloudtrail.py` is 98%).
+`make check` (ruff, strict mypy, pytest): **510 passed, 0 skipped, 0 failed**. Line coverage of `src/workload_graph` is 93%. (The count was 466 at the start of the multi-account step on `tam-v1`, and 461 before the UI and edge-list changes.) `graph/`, `normalisers/`, `models/`, `ids.py` and `ruleset.py` are each above 90% (`normalisers/topology.py` is 91%, `normalisers/cloudtrail.py` is 98%).
 
 ## Modules
 
@@ -37,6 +37,13 @@
 | 12 | evaluation | real | `test_evaluation.py` | metric definition is D34, provisional |
 | 13 | `pipeline.py`, `cli.py` | partial | `test_pipeline_cli.py` | `collect` is `SKELETON` and refuses to run |
 | 14 | `store/parquet.py` | real | contract suite plus round-trip | optional extra; not on the core install path |
+| 15 | `credentials.py` (ambient and assumed-role client factories) | partial | `test_fanout.py` | exercised on the test pad only (D48, D49); no customer account has the role yet |
+| 16 | `jobs.py` (sequenced event log) | partial | `test_fanout.py` | in memory only; no HTTP stream yet |
+| 17 | `fanout.py` (intake, bounded workers, joined build) | partial | `test_fanout.py` | the review gate and cost layer are not built |
+| 18 | `jobs.py` review decisions | partial | `test_runs_api.py` | in memory; no restart survival |
+| 19 | `runs.py` (registry, ambient and assumed-role planners) | partial | `test_runs_api.py` | assumed-role path run on the test pad with one account, plus one refused account (D50 notes) |
+| 20 | `ui_server.py` JSON routes and page | partial | `test_runs_api.py` (routes); live run checked by hand on the test pad | HTTP handler methods are not unit-tested |
+| 21 | `docs/COST_FINDINGS_BRIEF.md` | saved | none | the cost layer is not built; two checklist lines reworded for the docs guard |
 
 `models/workspace.py` is partial: the role name default is a placeholder. `graph/naming.py` is partial for the same reason as the name-hint skeleton.
 

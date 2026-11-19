@@ -68,7 +68,26 @@
   .pulse i:nth-child(3) { animation-delay: 0.4s; }
   @keyframes blink { 50% { opacity: 0.2; } }
   #error { color: #42A5F5; min-height: 1.4em; }
-  #graphs { display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 28px; margin-top: 36px; }
+  #graphs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; margin-top: 28px; }
+  @media (max-width: 1000px) { #graphs { grid-template-columns: 1fr; } }
+  #accounts { display: flex; flex-direction: column; gap: 10px; }
+  .account-row { display: flex; gap: 10px; align-items: center; }
+  .account-row input { min-width: 240px; }
+  .intake { display: flex; gap: 12px; align-items: center; }
+  .count { font-size: 13px; color: #cfcfcf; letter-spacing: 0.04em; }
+  button.ghost { background: transparent; color: #fff; border: 1px solid #fff; }
+  button.ghost.on { background: #fff; color: #000; }
+  button.round { width: 42px; height: 42px; padding: 0; font-size: 20px; line-height: 1; border-radius: 50%; }
+  button:disabled { opacity: 0.35; cursor: default; }
+  #log { list-style: none; padding: 0; margin: 20px auto 0; font-size: 13px; color: #cfcfcf; max-width: 60ch; }
+  #log li { margin: 4px 0; }
+  #review-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 28px; font-size: 14px; color: #d0d0d0; }
+  #review-bar:empty { display: none; }
+  #pager { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 28px 0 0; font-size: 13px; color: #d0d0d0; }
+  #pager:empty { display: none; }
+  article .actions { display: flex; gap: 10px; margin-top: 12px; }
+  article .actions button { padding: 8px 18px; font-size: 14px; }
+  article .state { color: #fff; }
   article { background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 16px; padding: 16px; }
   article h2 { margin: 0 0 4px; font-size: 18px; font-weight: 500; }
   article .meta { color: #cfcfcf; font-size: 13px; margin-bottom: 8px; }
@@ -84,20 +103,28 @@
 <body>
 <main>
   <h1>WORKLOAD GRAPH</h1>
-  <p class="lead">Enter the member account to read. One graph is drawn for each workload the build proposes.</p>
+  <p class="lead">Add the member accounts to read, up to 20. One graph is drawn for each workload the run proposes. Approve or reject each one.</p>
   <form id="ask">
-    <label>Account id<input name="account_id" inputmode="numeric" pattern="[0-9]{12}" maxlength="12" required></label>
+    <div id="accounts" aria-label="Accounts to read"></div>
+    <div class="intake">
+      <button type="button" class="ghost round" id="add" aria-label="Add an account">+</button>
+      <span class="count" id="count"></span>
+    </div>
     <label>Region<input name="region" value="ap-south-1" required></label>
     <button type="submit">Build</button>
   </form>
+  <datalist id="past"></datalist>
   <p id="error"></p>
   <section id="loading" aria-live="polite">
     <div>
-      <strong>READING THE ACCOUNT</strong>
+      <strong>READING THE ACCOUNTS</strong>
       <div class="pulse"><i></i><i></i><i></i></div>
+      <ol id="log"></ol>
     </div>
   </section>
+  <div id="review-bar"></div>
   <div id="graphs"></div>
+  <nav id="pager"></nav>
 </main>
 <div id="tip"></div>
 <script>
@@ -106,6 +133,17 @@ const loading = document.getElementById("loading");
 const graphs = document.getElementById("graphs");
 const error = document.getElementById("error");
 const tip = document.getElementById("tip");
+const accountsBox = document.getElementById("accounts");
+const addButton = document.getElementById("add");
+const countLabel = document.getElementById("count");
+const pastList = document.getElementById("past");
+const log = document.getElementById("log");
+const reviewBar = document.getElementById("review-bar");
+const pager = document.getElementById("pager");
+const PAST_KEY = "wg.pastAccounts";
+const MAX_ACCOUNTS = 20;
+const PAGE_SIZE = 4;
+let run = null;
 
 function esc(value) {
   return String(value ?? "").replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
@@ -353,39 +391,242 @@ function draw(canvas, workload) {
   window.addEventListener("resize", paint);
 }
 
+function pastAccounts() {
+  try {
+    const value = JSON.parse(localStorage.getItem(PAST_KEY) || "[]");
+    return Array.isArray(value) ? value.filter((id) => /^[0-9]{12}$/.test(id)) : [];
+  } catch (err) {
+    return [];
+  }
+}
+function rememberAccounts(ids) {
+  const merged = [...ids, ...pastAccounts().filter((id) => !ids.includes(id))].slice(0, 50);
+  localStorage.setItem(PAST_KEY, JSON.stringify(merged));
+  refreshPastList();
+}
+function refreshPastList() {
+  pastList.innerHTML = "";
+  pastAccounts().forEach((id) => {
+    const option = document.createElement("option");
+    option.value = id;
+    pastList.append(option);
+  });
+}
+function updateCount() {
+  const rows = accountsBox.querySelectorAll(".account-row");
+  countLabel.textContent = rows.length + " of " + MAX_ACCOUNTS;
+  addButton.disabled = rows.length >= MAX_ACCOUNTS;
+  rows.forEach((row) => { row.querySelector("button").disabled = rows.length <= 1; });
+}
+function addRow(value) {
+  if (accountsBox.querySelectorAll(".account-row").length >= MAX_ACCOUNTS) return;
+  const row = document.createElement("div");
+  row.className = "account-row";
+  const input = document.createElement("input");
+  input.name = "account";
+  input.inputMode = "numeric";
+  input.pattern = "[0-9]{12}";
+  input.maxLength = 12;
+  input.setAttribute("list", "past");
+  input.setAttribute("aria-label", "Account id");
+  input.placeholder = "12-digit account id";
+  input.value = value || "";
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "ghost round";
+  remove.textContent = "−";
+  remove.setAttribute("aria-label", "Remove this account");
+  remove.onclick = () => { row.remove(); updateCount(); };
+  row.append(input, remove);
+  accountsBox.append(row);
+  updateCount();
+}
+addButton.onclick = () => addRow("");
+addRow("");
+refreshPastList();
+
+function showForm() {
+  loading.classList.remove("show");
+  form.style.display = "flex";
+}
+function resetRun() {
+  run = null;
+  log.innerHTML = "";
+  graphs.innerHTML = "";
+  reviewBar.innerHTML = "";
+  pager.innerHTML = "";
+  error.textContent = "";
+}
+function describe(event) {
+  const id = event.account_id || "";
+  switch (event.kind) {
+    case "running": return "run started · " + event.detail;
+    case "account_started": return "reading " + id;
+    case "account_collected": return "read " + id + " · " + event.detail;
+    case "account_failed": return id + " could not be read · " + event.detail;
+    case "building": return "building the graph";
+    case "awaiting_review": return "ready for review · " + event.detail;
+    case "failed": return "the run failed · " + event.detail;
+    default: return "";
+  }
+}
+function showEvents(events) {
+  events.forEach((event) => {
+    run.lastSeq = event.seq;
+    const text = describe(event);
+    if (!text) return;
+    const line = document.createElement("li");
+    line.textContent = text;
+    log.append(line);
+  });
+}
+function stateLabel(decision) {
+  if (decision === "approve") return "Approved";
+  if (decision === "reject") return "Rejected";
+  return "Pending review";
+}
+function makeCard(workload) {
+  const card = document.createElement("article");
+  const decision = run.decisions[workload.workload_id] || "";
+  card.innerHTML = "<h2>" + esc(workload.name_hint) + "</h2><div class='meta'>"
+    + esc(workload.confidence) + " · " + workload.members.length + " members · "
+    + (workload.edges || []).length + " edges · <span class='state'>" + stateLabel(decision)
+    + "</span></div><canvas></canvas><div class='actions'></div>";
+  const actions = card.querySelector(".actions");
+  [["approve", "Approve"], ["reject", "Reject"]].forEach(([name, label]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ghost" + (decision === name ? " on" : "");
+    button.textContent = label;
+    button.onclick = () => decide(workload.workload_id, name);
+    actions.append(button);
+  });
+  return card;
+}
+function renderBar() {
+  const workloads = run.workloads;
+  const count = (name) => workloads.filter((w) => run.decisions[w.workload_id] === name).length;
+  const approved = count("approve");
+  const rejected = count("reject");
+  const pending = workloads.length - approved - rejected;
+  reviewBar.innerHTML = "";
+  const summary = document.createElement("span");
+  summary.textContent = workloads.length + " workloads · " + approved + " approved · "
+    + rejected + " rejected · " + pending + " pending";
+  const again = document.createElement("button");
+  again.type = "button";
+  again.className = "ghost";
+  again.textContent = "New run";
+  again.onclick = () => { resetRun(); showForm(); };
+  reviewBar.append(summary, again);
+}
+function renderPager(pages) {
+  pager.innerHTML = "";
+  if (pages <= 1) return;
+  const previous = document.createElement("button");
+  previous.type = "button";
+  previous.className = "ghost";
+  previous.textContent = "Previous";
+  previous.disabled = run.page === 0;
+  previous.onclick = () => { run.page -= 1; renderPage(); };
+  const label = document.createElement("span");
+  label.textContent = "Page " + (run.page + 1) + " of " + pages;
+  const next = document.createElement("button");
+  next.type = "button";
+  next.className = "ghost";
+  next.textContent = "Next";
+  next.disabled = run.page >= pages - 1;
+  next.onclick = () => { run.page += 1; renderPage(); };
+  pager.append(previous, label, next);
+}
+function renderPage() {
+  graphs.innerHTML = "";
+  const workloads = run.workloads;
+  const pages = Math.max(1, Math.ceil(workloads.length / PAGE_SIZE));
+  run.page = Math.min(run.page, pages - 1);
+  if (!workloads.length) {
+    error.textContent = "No workload was proposed. Residuals and unmapped resources are in the build notes.";
+  }
+  workloads.slice(run.page * PAGE_SIZE, run.page * PAGE_SIZE + PAGE_SIZE).forEach((workload) => {
+    const card = makeCard(workload);
+    graphs.append(card);
+    draw(card.querySelector("canvas"), workload);
+  });
+  renderBar();
+  renderPager(pages);
+}
+async function decide(workloadId, decision) {
+  const current = run;
+  const response = await fetch("/api/jobs/" + current.jobId + "/review", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ workload_id: workloadId, decision }),
+  });
+  const body = await response.json();
+  if (!response.ok) {
+    error.textContent = body.error || "the decision was not recorded";
+    return;
+  }
+  if (run !== current) return;
+  current.decisions = body.decisions;
+  renderPage();
+}
+async function follow(current) {
+  while (run === current) {
+    const response = await fetch("/api/jobs/" + current.jobId + "?after=" + current.lastSeq + "&wait=20");
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error || "the run could not be followed");
+    if (run !== current) return;
+    showEvents(body.events);
+    current.decisions = body.decisions;
+    if (body.result && !current.resultShown) {
+      current.resultShown = true;
+      current.workloads = body.result.workloads || [];
+    }
+    if (body.settled) {
+      if (body.state === "failed") {
+        const failure = body.events.filter((event) => event.kind === "failed").pop();
+        throw new Error("the run failed" + (failure ? " · " + failure.detail : ""));
+      }
+      loading.classList.remove("show");
+      renderPage();
+      return;
+    }
+  }
+}
+
 form.onsubmit = async (event) => {
   event.preventDefault();
   error.textContent = "";
-  graphs.innerHTML = "";
   hideTip();
+  const accounts = [...accountsBox.querySelectorAll("input")].map((input) => input.value.trim());
+  if (accounts.some((id) => !/^[0-9]{12}$/.test(id))) {
+    error.textContent = "Every account id must be exactly 12 digits.";
+    return;
+  }
+  if (new Set(accounts).size !== accounts.length) {
+    error.textContent = "An account is listed twice.";
+    return;
+  }
+  const region = form.elements.region.value.trim();
+  resetRun();
   form.style.display = "none";
   loading.classList.add("show");
-  const data = Object.fromEntries(new FormData(form));
   try {
-    const response = await fetch("/api/build", {
+    const response = await fetch("/api/jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ accounts, region }),
     });
     const body = await response.json();
-    if (!response.ok) throw new Error(body.error || "build failed");
-    const workloads = body.workloads || [];
-    if (!workloads.length) {
-      error.textContent = "No workload was proposed. Residuals and unmapped resources are in the build notes.";
-    }
-    workloads.forEach((workload) => {
-      const card = document.createElement("article");
-      card.innerHTML = "<h2>" + esc(workload.name_hint) + "</h2><div class='meta'>"
-        + esc(workload.confidence) + " · " + workload.members.length + " members · "
-        + (workload.edges || []).length + " edges</div><canvas></canvas>";
-      graphs.appendChild(card);
-      draw(card.querySelector("canvas"), workload);
-    });
+    if (!response.ok) throw new Error(body.error || "the run could not start");
+    rememberAccounts(accounts);
+    run = { jobId: body.job_id, lastSeq: 0, workloads: [], decisions: {}, page: 0, resultShown: false };
+    await follow(run);
   } catch (err) {
+    resetRun();
     error.textContent = err.message;
-  } finally {
-    loading.classList.remove("show");
-    form.style.display = "flex";
+    showForm();
   }
 };
 </script>
