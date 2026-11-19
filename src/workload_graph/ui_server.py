@@ -63,7 +63,8 @@ def create_job(runs: Runs, payload: object) -> Reply:
         return _client_error(exc)
     except BotoCoreError:
         return 502, {"error": "the account could not be read"}
-    return 202, {"job_id": job.job_id, "accounts": list(job.accounts), "state": job.state.value}
+    return 202, {"job_id": job.job_id, "accounts": list(job.accounts), "region": job.region,
+                 "state": job.state.value}
 
 
 def _event_view(event: Any) -> dict[str, Any]:
@@ -75,6 +76,7 @@ def _job_view(job: Job, events: list[Any]) -> dict[str, Any]:
     body: dict[str, Any] = {
         "job_id": job.job_id,
         "accounts": list(job.accounts),
+        "region": job.region,
         "state": job.state.value,
         "settled": job.is_quiet,
         "events": [_event_view(event) for event in events],

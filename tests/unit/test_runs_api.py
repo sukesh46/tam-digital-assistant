@@ -131,6 +131,7 @@ def test_create_job_returns_202_with_the_job_id_and_sorted_accounts() -> None:
     status, body = create_job(_runs(), {"accounts": [ACCT_A], "region": REGION})
     assert status == 202
     assert body["accounts"] == [ACCT_A]
+    assert body["region"] == REGION
     assert body["job_id"]
 
 

@@ -84,8 +84,15 @@
   button:disabled { opacity: 0.35; cursor: default; }
   #log { list-style: none; padding: 0; margin: 20px auto 0; font-size: 13px; color: #cfcfcf; max-width: 60ch; }
   #log li { margin: 4px 0; }
-  #review-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 28px; font-size: 14px; color: #d0d0d0; }
+  #review-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 28px; font-size: 14px; color: #d0d0d0; flex-wrap: wrap; }
   #review-bar:empty { display: none; }
+  #account-filter { display: none; margin-top: 20px; }
+  #account-filter.show { display: block; }
+  #account-filter label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0.04em; max-width: 360px; }
+  #account-filter select {
+    background: #000; color: #fff; border: 1px solid #fff; border-radius: 999px;
+    padding: 10px 16px; font-size: 15px; min-width: 280px;
+  }
   #pager { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 28px 0 0; font-size: 13px; color: #d0d0d0; }
   #pager:empty { display: none; }
   article .actions { display: flex; gap: 10px; margin-top: 12px; }
@@ -157,7 +164,6 @@
     <button type="submit">Build</button>
   </form>
   <section id="past-runs"></section>
-  <datalist id="past"></datalist>
   <p id="error"></p>
   <section id="loading" aria-live="polite">
     <div>
@@ -166,6 +172,7 @@
       <ol id="log"></ol>
     </div>
   </section>
+  <div id="account-filter" aria-live="polite"></div>
   <div id="review-bar"></div>
   <div id="graphs"></div>
   <nav id="pager"></nav>
@@ -181,9 +188,9 @@ const tip = document.getElementById("tip");
 const accountsBox = document.getElementById("accounts");
 const addButton = document.getElementById("add");
 const countLabel = document.getElementById("count");
-const pastList = document.getElementById("past");
 const log = document.getElementById("log");
 const reviewBar = document.getElementById("review-bar");
+const accountFilter = document.getElementById("account-filter");
 const pager = document.getElementById("pager");
 const ledger = document.getElementById("ledger");
 const pastRuns = document.getElementById("past-runs");
@@ -450,15 +457,6 @@ function pastAccounts() {
 function rememberAccounts(ids) {
   const merged = [...ids, ...pastAccounts().filter((id) => !ids.includes(id))].slice(0, 50);
   localStorage.setItem(PAST_KEY, JSON.stringify(merged));
-  refreshPastList();
-}
-function refreshPastList() {
-  pastList.innerHTML = "";
-  pastAccounts().forEach((id) => {
-    const option = document.createElement("option");
-    option.value = id;
-    pastList.append(option);
-  });
 }
 function updateCount() {
   const rows = accountsBox.querySelectorAll(".account-row");
@@ -472,10 +470,11 @@ function addRow(value) {
   row.className = "account-row";
   const input = document.createElement("input");
   input.name = "account";
+  input.type = "text";
   input.inputMode = "numeric";
   input.pattern = "[0-9]{12}";
   input.maxLength = 12;
-  input.setAttribute("list", "past");
+  input.autocomplete = "off";
   input.setAttribute("aria-label", "Account id");
   input.placeholder = "12-digit account id";
   input.value = value || "";
@@ -491,7 +490,6 @@ function addRow(value) {
 }
 addButton.onclick = () => addRow("");
 addRow("");
-refreshPastList();
 loadPastRuns();
 
 function showForm() {
@@ -504,12 +502,48 @@ function resetRun() {
   log.innerHTML = "";
   graphs.innerHTML = "";
   reviewBar.innerHTML = "";
+  accountFilter.innerHTML = "";
+  accountFilter.classList.remove("show");
   pager.innerHTML = "";
   ledger.innerHTML = "";
   ledger.classList.remove("show");
   document.body.classList.remove("ledger-open");
   pastRuns.innerHTML = "";
   error.textContent = "";
+}
+function workloadsForView() {
+  const accountId = run.filterAccount || (run.accounts && run.accounts[0]) || "";
+  if (!accountId) return run.workloads;
+  return run.workloads.filter((workload) =>
+    (workload.members || []).some((member) => member.key && member.key.account_id === accountId));
+}
+function renderAccountFilter() {
+  accountFilter.innerHTML = "";
+  if (!run || !run.accounts || !run.accounts.length) {
+    accountFilter.classList.remove("show");
+    return;
+  }
+  accountFilter.classList.add("show");
+  const label = el("label", "Account");
+  const select = document.createElement("select");
+  select.setAttribute("aria-label", "Account and region to review");
+  const region = run.region || "";
+  run.accounts.forEach((accountId) => {
+    const option = document.createElement("option");
+    option.value = accountId;
+    option.textContent = accountId + " - " + region;
+    if (accountId === run.filterAccount) option.selected = true;
+    select.append(option);
+  });
+  if (!run.filterAccount) run.filterAccount = run.accounts[0];
+  select.value = run.filterAccount;
+  select.onchange = () => {
+    run.filterAccount = select.value;
+    run.page = 0;
+    renderPage();
+  };
+  label.append(select);
+  accountFilter.append(label);
 }
 function describe(event) {
   const id = event.account_id || "";
@@ -566,15 +600,17 @@ function makeCard(workload) {
   return card;
 }
 function renderBar() {
-  const workloads = run.workloads;
-  const count = (name) => workloads.filter((w) => run.decisions[w.workload_id] === name).length;
+  const all = run.workloads;
+  const count = (name) => all.filter((w) => run.decisions[w.workload_id] === name).length;
   const approved = count("approve");
   const rejected = count("reject");
-  const pending = workloads.length - approved - rejected;
+  const pending = all.length - approved - rejected;
+  const visible = workloadsForView().length;
   reviewBar.innerHTML = "";
   const summary = document.createElement("span");
-  summary.textContent = workloads.length + " workloads · " + approved + " approved · "
-    + rejected + " rejected · " + pending + " pending";
+  summary.textContent = all.length + " workloads · " + approved + " approved · "
+    + rejected + " rejected · " + pending + " pending"
+    + (run.accounts && run.accounts.length > 1 ? " · showing " + visible + " for " + run.filterAccount : "");
   const buttons = document.createElement("div");
   buttons.className = "buttons";
   const cost = document.createElement("button");
@@ -621,17 +657,23 @@ function renderPager(pages) {
 }
 function renderPage() {
   graphs.innerHTML = "";
-  const workloads = run.workloads;
+  if (!run.filterAccount && run.accounts && run.accounts.length) run.filterAccount = run.accounts[0];
+  const workloads = workloadsForView();
   const pages = Math.max(1, Math.ceil(workloads.length / PAGE_SIZE));
   run.page = Math.min(run.page, pages - 1);
-  if (!workloads.length) {
+  if (!run.workloads.length) {
     error.textContent = "No workload was proposed. Residuals and unmapped resources are in the build notes.";
+  } else if (!workloads.length) {
+    error.textContent = "No workload for " + run.filterAccount + " in " + (run.region || "this region") + ".";
+  } else {
+    error.textContent = "";
   }
   workloads.slice(run.page * PAGE_SIZE, run.page * PAGE_SIZE + PAGE_SIZE).forEach((workload) => {
     const card = makeCard(workload);
     graphs.append(card);
     draw(card.querySelector("canvas"), workload);
   });
+  renderAccountFilter();
   renderBar();
   renderPager(pages);
 }
@@ -660,9 +702,14 @@ async function follow(current) {
     showEvents(body.events);
     current.decisions = body.decisions;
     current.cost = body.cost || { state: "none", detail: "" };
+    if (body.accounts) current.accounts = body.accounts;
+    if (body.region) current.region = body.region;
     if (body.result && !current.resultShown) {
       current.resultShown = true;
       current.workloads = body.result.workloads || [];
+      if (!current.filterAccount && current.accounts && current.accounts.length) {
+        current.filterAccount = current.accounts[0];
+      }
     }
     if (body.settled) {
       if (body.state === "failed") {
@@ -817,6 +864,8 @@ function renderLedger(report) {
   graphs.innerHTML = "";
   pager.innerHTML = "";
   reviewBar.innerHTML = "";
+  accountFilter.innerHTML = "";
+  accountFilter.classList.remove("show");
   error.textContent = "";
   ledger.innerHTML = "";
   document.body.classList.add("ledger-open");
@@ -1022,6 +1071,7 @@ async function resume(jobId, toLedger) {
   loadingTitle.textContent = "OPENING THE RUN";
   loading.classList.add("show");
   run = { jobId, lastSeq: 0, workloads: [], decisions: {}, page: 0, resultShown: false,
+          accounts: [], region: "", filterAccount: "",
           cost: { state: "none", detail: "" }, wantLedger: toLedger };
   try {
     await follow(run);
@@ -1060,6 +1110,8 @@ form.onsubmit = async (event) => {
     if (!response.ok) throw new Error(body.error || "the run could not start");
     rememberAccounts(accounts);
     run = { jobId: body.job_id, lastSeq: 0, workloads: [], decisions: {}, page: 0, resultShown: false,
+            accounts: body.accounts || accounts, region: body.region || region,
+            filterAccount: (body.accounts || accounts)[0],
             cost: { state: "none", detail: "" }, wantLedger: false };
     await follow(run);
   } catch (err) {
