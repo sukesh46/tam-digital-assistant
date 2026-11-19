@@ -1,0 +1,21 @@
+{
+  "scenario": "s3",
+  "description": "Tag conflict: one resource tagged app=orders and App=billing; it belongs to neither until a human decides.",
+  "workloads": [
+    {
+      "name": "orders",
+      "members": [
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:instance/i-0s3orders1",
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:instance/i-0s3orders2"
+      ]
+    },
+    {
+      "name": "billing",
+      "members": [
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:instance/i-0s3billing1",
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:instance/i-0s3billing2"
+      ]
+    }
+  ],
+  "shared": []
+}

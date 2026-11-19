@@ -1,0 +1,10 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: workload-graph test pad, billing (one empty bucket; free-tier scale).
+
+Resources:
+  BillingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - Key: app
+          Value: billing

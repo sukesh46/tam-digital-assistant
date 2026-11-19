@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workload graph</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #000; color: #fff; font-family: "Segoe UI", sans-serif; }
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::before {
+    background-image:
+      radial-gradient(2px 2px at 4% 5%, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 9% 16%, rgba(255,255,255,0.75), transparent),
+      radial-gradient(1px 1px at 15% 8%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(2px 2px at 6% 94%, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 13% 82%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1px 1px at 3% 70%, rgba(255,255,255,0.35), transparent),
+      radial-gradient(2px 2px at 96% 6%, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 89% 14%, rgba(255,255,255,0.65), transparent),
+      radial-gradient(1px 1px at 83% 4%, rgba(255,255,255,0.35), transparent),
+      radial-gradient(2px 2px at 95% 93%, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 87% 84%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1px 1px at 97% 74%, rgba(255,255,255,0.35), transparent);
+    background-repeat: no-repeat;
+    opacity: 0.8;
+  }
+  body::after {
+    background-image: radial-gradient(circle, #fff 1.1px, transparent 1.5px);
+    background-size: 32px 16px;
+    background-repeat: repeat;
+    opacity: 0.85;
+    -webkit-mask-image: radial-gradient(ellipse farthest-corner at 50% 50%, #000 0%, rgba(0,0,0,0.7) 28%, rgba(0,0,0,0.32) 52%, rgba(0,0,0,0.14) 74%, rgba(0,0,0,0.05) 100%);
+    mask-image: radial-gradient(ellipse farthest-corner at 50% 50%, #000 0%, rgba(0,0,0,0.7) 28%, rgba(0,0,0,0.32) 52%, rgba(0,0,0,0.14) 74%, rgba(0,0,0,0.05) 100%);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+  }
+  main { position: relative; z-index: 1; min-height: 100%; padding: 48px 32px 64px; }
+  h1 { font-weight: 500; letter-spacing: 0.08em; font-size: 22px; margin: 0 0 8px; }
+  p.lead { margin: 0 0 28px; color: #d0d0d0; max-width: 40rem; }
+  form { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+  label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0.04em; }
+  input {
+    background: #000; color: #fff; border: 1px solid #fff; border-radius: 999px;
+    padding: 10px 16px; font-size: 15px; min-width: 220px;
+  }
+  button {
+    background: #fff; color: #000; border: 0; border-radius: 999px; padding: 11px 22px;
+    font-size: 15px; cursor: pointer;
+  }
+  #loading { display: none; min-height: 60vh; place-items: center; text-align: center; }
+  #loading.show { display: grid; }
+  #loading strong { font-weight: 500; letter-spacing: 0.14em; font-size: 18px; }
+  .pulse { width: 8px; height: 72px; margin: 18px auto 0; display: flex; flex-direction: column; justify-content: space-between; }
+  .pulse i { width: 6px; height: 6px; border-radius: 50%; background: #fff; display: block; animation: blink 1.2s infinite; }
+  .pulse i:nth-child(2) { animation-delay: 0.2s; }
+  .pulse i:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 50% { opacity: 0.2; } }
+  #error { color: #42A5F5; min-height: 1.4em; }
+  #graphs { display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 28px; margin-top: 36px; }
+  article { background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 16px; padding: 16px; }
+  article h2 { margin: 0 0 4px; font-size: 18px; font-weight: 500; }
+  article .meta { color: #cfcfcf; font-size: 13px; margin-bottom: 8px; }
+  canvas { width: 100%; height: 420px; display: block; cursor: crosshair; }
+  #tip {
+    position: fixed; z-index: 5; display: none; max-width: 320px;
+    background: #42A5F5; color: #04121f; border-radius: 10px; padding: 10px 12px;
+    font-size: 13px; line-height: 1.45; pointer-events: none;
+  }
+  #tip b { display: block; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>WORKLOAD GRAPH</h1>
+  <p class="lead">Enter the member account to read. One graph is drawn for each workload the build proposes.</p>
+  <form id="ask">
+    <label>Account id<input name="account_id" inputmode="numeric" pattern="[0-9]{12}" maxlength="12" required></label>
+    <label>Region<input name="region" value="ap-south-1" required></label>
+    <button type="submit">Build</button>
+  </form>
+  <p id="error"></p>
+  <section id="loading" aria-live="polite">
+    <div>
+      <strong>READING THE ACCOUNT</strong>
+      <div class="pulse"><i></i><i></i><i></i></div>
+    </div>
+  </section>
+  <div id="graphs"></div>
+</main>
+<div id="tip"></div>
+<script>
+const form = document.getElementById("ask");
+const loading = document.getElementById("loading");
+const graphs = document.getElementById("graphs");
+const error = document.getElementById("error");
+const tip = document.getElementById("tip");
+
+function esc(value) {
+  return String(value ?? "").replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
+}
+function tail(value) {
+  const text = String(value && value.arn ? value.arn : value);
+  const arn = text.includes("|") ? text.split("|").pop() : text;
+  const parts = arn.split(":").filter(Boolean);
+  return (parts[parts.length - 1] || arn).split("/").pop();
+}
+function showTip(html, x, y) {
+  tip.innerHTML = html;
+  tip.style.display = "block";
+  const box = tip.getBoundingClientRect();
+  tip.style.left = Math.min(x + 16, window.innerWidth - box.width - 12) + "px";
+  tip.style.top = Math.min(y + 16, window.innerHeight - box.height - 12) + "px";
+}
+function hideTip() { tip.style.display = "none"; }
+
+function draw(canvas, workload) {
+  const ctx = canvas.getContext("2d");
+  const members = workload.members || [];
+  const ids = new Map();
+  members.forEach((member) => ids.set(member.key.account_id + "|" + member.key.region + "|" + member.key.arn, member));
+  const nodes = members.map((member) => ({
+    id: member.key.account_id + "|" + member.key.region + "|" + member.key.arn,
+    label: tail(member.key),
+    member,
+  }));
+  const known = new Set(nodes.map((node) => node.id));
+  (workload.edges || []).forEach((edge) => {
+    if (!known.has(edge.dst)) {
+      known.add(edge.dst);
+      nodes.push({ id: edge.dst, label: tail(edge.dst), member: null });
+    }
+  });
+  const index = new Map(nodes.map((node, i) => [node.id, i]));
+  const links = [];
+  (workload.edges || []).forEach((edge) => {
+    const src = edge.src.account_id + "|" + edge.src.region + "|" + edge.src.arn;
+    if (index.has(src) && index.has(edge.dst) && src !== edge.dst) {
+      links.push({ a: index.get(src), b: index.get(edge.dst), edge });
+    }
+  });
+  const n = nodes.length || 1;
+  nodes.forEach((node, i) => {
+    const angle = (Math.PI * 2 * i) / n;
+    node.x = Math.cos(angle);
+    node.y = Math.sin(angle);
+  });
+  for (let step = 0; step < 80; step += 1) {
+    for (let i = 0; i < nodes.length; i += 1) {
+      for (let j = i + 1; j < nodes.length; j += 1) {
+        let dx = nodes[j].x - nodes[i].x;
+        let dy = nodes[j].y - nodes[i].y;
+        const dist = Math.hypot(dx, dy) || 0.01;
+        const force = 0.02 / dist;
+        dx = (dx / dist) * force;
+        dy = (dy / dist) * force;
+        nodes[i].x -= dx; nodes[i].y -= dy;
+        nodes[j].x += dx; nodes[j].y += dy;
+      }
+    }
+    links.forEach((link) => {
+      const a = nodes[link.a];
+      const b = nodes[link.b];
+      a.x += (b.x - a.x) * 0.02;
+      a.y += (b.y - a.y) * 0.02;
+      b.x += (a.x - b.x) * 0.02;
+      b.y += (a.y - b.y) * 0.02;
+    });
+  }
+  const hits = [];
+  const nodeRadius = 11;
+  const labelGap = 14;
+
+  function shelf(list, usable) {
+    const ordered = [...list].sort((a, b) => a.node.x - b.node.x || a.node.label.localeCompare(b.node.label));
+    const rows = [];
+    ordered.forEach((item) => {
+      const row = rows[rows.length - 1];
+      const used = row ? row.reduce((sum, entry) => sum + entry.w + labelGap, -labelGap) : 0;
+      if (!row || used + labelGap + item.w > usable) rows.push([item]);
+      else row.push(item);
+    });
+    return rows;
+  }
+
+  function settle(rows, width) {
+    const sidePad = 10;
+    rows.forEach((row) => {
+      let cursor = sidePad;
+      row.forEach((entry) => {
+        const ideal = entry.node.px - entry.w / 2;
+        entry.x = Math.max(cursor, ideal);
+        cursor = entry.x + entry.w + labelGap;
+      });
+      const overflow = cursor - labelGap - (width - sidePad);
+      if (overflow > 0) row.forEach((entry) => { entry.x -= overflow; });
+      if (row.length && row[0].x < sidePad) {
+        let x = sidePad;
+        row.forEach((entry) => {
+          entry.x = x;
+          x += entry.w + labelGap;
+        });
+      }
+    });
+  }
+
+  function paint() {
+    const width = canvas.clientWidth;
+    if (width < 40) return;
+    let fontSize = 12;
+    ctx.font = fontSize + "px sans-serif";
+    let widest = 1;
+    nodes.forEach((node) => {
+      widest = Math.max(widest, ctx.measureText(node.label).width);
+    });
+    while (widest > width - 24 && fontSize > 10) {
+      fontSize -= 1;
+      ctx.font = fontSize + "px sans-serif";
+      widest = 1;
+      nodes.forEach((node) => {
+        widest = Math.max(widest, ctx.measureText(node.label).width);
+      });
+    }
+    const labelH = fontSize + 3;
+    const usable = Math.max(width - 20, 40);
+    const measured = nodes.map((node) => ({
+      node,
+      w: Math.ceil(ctx.measureText(node.label).width),
+    }));
+    const midY = nodes.reduce((sum, node) => sum + node.y, 0) / (nodes.length || 1);
+    const topRows = shelf(measured.filter((item) => item.node.y <= midY), usable);
+    const bottomRows = shelf(measured.filter((item) => item.node.y > midY), usable);
+    const rowStride = labelH + 6;
+    const chrome = nodeRadius + 18;
+    const marginTop = chrome + topRows.length * rowStride;
+    const marginBottom = chrome + bottomRows.length * rowStride;
+    const height = Math.max(420, marginTop + marginBottom + 200);
+    canvas.style.height = height + "px";
+    const boxHeight = canvas.clientHeight;
+    canvas.width = width * devicePixelRatio;
+    canvas.height = boxHeight * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    ctx.clearRect(0, 0, width, boxHeight);
+    ctx.font = fontSize + "px sans-serif";
+
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    nodes.forEach((node) => {
+      minX = Math.min(minX, node.x);
+      maxX = Math.max(maxX, node.x);
+      minY = Math.min(minY, node.y);
+      maxY = Math.max(maxY, node.y);
+    });
+    const spanX = Math.max(maxX - minX, 1);
+    const spanY = Math.max(maxY - minY, 1);
+    const innerW = Math.max(width - chrome * 2, 1);
+    const innerH = Math.max(boxHeight - marginTop - marginBottom, 1);
+    const fit = Math.min(innerW / spanX, innerH / spanY);
+    const originX = (minX + maxX) / 2;
+    const originY = (minY + maxY) / 2;
+    nodes.forEach((node) => {
+      node.px = chrome + innerW / 2 + (node.x - originX) * fit;
+      node.py = marginTop + innerH / 2 + (node.y - originY) * fit;
+    });
+    settle(topRows, width);
+    settle(bottomRows, width);
+    topRows.forEach((row, index) => {
+      const y = 6 + index * rowStride;
+      row.forEach((entry) => {
+        entry.node.labelBox = { x: entry.x, y, w: entry.w, h: labelH };
+      });
+    });
+    bottomRows.forEach((row, index) => {
+      const y = boxHeight - marginBottom + chrome + index * rowStride;
+      row.forEach((entry) => {
+        entry.node.labelBox = { x: entry.x, y, w: entry.w, h: labelH };
+      });
+    });
+
+    hits.length = 0;
+    ctx.strokeStyle = "rgba(255,255,255,0.85)";
+    ctx.lineWidth = 1.2;
+    links.forEach((link) => {
+      const a = nodes[link.a];
+      const b = nodes[link.b];
+      ctx.beginPath();
+      ctx.moveTo(a.px, a.py);
+      ctx.lineTo(b.px, b.py);
+      ctx.stroke();
+      hits.push({
+        kind: "edge",
+        x: (a.px + b.px) / 2,
+        y: (a.py + b.py) / 2,
+        r: 10,
+        edge: link.edge,
+      });
+    });
+    nodes.forEach((node) => {
+      const gradient = ctx.createRadialGradient(node.px - 4, node.py - 4, 2, node.px, node.py, 14);
+      gradient.addColorStop(0, "#fff");
+      gradient.addColorStop(1, "#9a9a9a");
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(node.px, node.py, nodeRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(node.label, node.labelBox.x, node.labelBox.y);
+      hits.push({ kind: "node", x: node.px, y: node.py, r: 14, node });
+    });
+  }
+  paint();
+  canvas.onmousemove = (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const hit = [...hits].reverse().find((item) => Math.hypot(item.x - x, item.y - y) <= item.r + 4);
+    if (!hit) { hideTip(); return; }
+    if (hit.kind === "node") {
+      const member = hit.node.member;
+      const lines = ["<b>" + esc(hit.node.label) + "</b>"];
+      if (member) {
+        lines.push(esc(member.membership) + (member.affinity == null ? "" : " · affinity " + member.affinity));
+        lines.push(esc((member.reasons || []).join(", ") || "no extra reasons"));
+      } else {
+        lines.push("not placed in this workload");
+      }
+      lines.push(esc(hit.node.id));
+      showTip(lines.join("<br>"), event.clientX, event.clientY);
+    } else {
+      const edge = hit.edge;
+      const evidence = (edge.evidence || [])[0];
+      const lines = ["<b>" + esc(edge.edge_type) + "</b>"];
+      if (evidence) lines.push(esc(evidence.source) + " · " + esc(evidence.detail));
+      showTip(lines.join("<br>"), event.clientX, event.clientY);
+    }
+  };
+  canvas.onmouseleave = hideTip;
+  window.addEventListener("resize", paint);
+}
+
+form.onsubmit = async (event) => {
+  event.preventDefault();
+  error.textContent = "";
+  graphs.innerHTML = "";
+  hideTip();
+  form.style.display = "none";
+  loading.classList.add("show");
+  const data = Object.fromEntries(new FormData(form));
+  try {
+    const response = await fetch("/api/build", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error || "build failed");
+    const workloads = body.workloads || [];
+    if (!workloads.length) {
+      error.textContent = "No workload was proposed. Residuals and unmapped resources are in the build notes.";
+    }
+    workloads.forEach((workload) => {
+      const card = document.createElement("article");
+      card.innerHTML = "<h2>" + esc(workload.name_hint) + "</h2><div class='meta'>"
+        + esc(workload.confidence) + " · " + workload.members.length + " members · "
+        + (workload.edges || []).length + " edges</div><canvas></canvas>";
+      graphs.appendChild(card);
+      draw(card.querySelector("canvas"), workload);
+    });
+  } catch (err) {
+    error.textContent = err.message;
+  } finally {
+    loading.classList.remove("show");
+    form.style.display = "flex";
+  }
+};
+</script>
+</body>
+</html>

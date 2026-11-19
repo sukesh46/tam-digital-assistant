@@ -1,0 +1,153 @@
+{
+  "snapshot_id": "unit-111111111111-eu-west-1-stacks",
+  "source": "stacks",
+  "account_id": "111111111111",
+  "region": "eu-west-1",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "operations_called": ["ListStacks", "DescribeStackResources", "DescribeStackResources", "DescribeStackResources"],
+  "payload": {
+    "ListStacks": [
+      {
+        "StackSummaries": [
+          {
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+            "StackName": "orders",
+            "CreationTime": "2025-12-01T10:00:00Z",
+            "StackStatus": "CREATE_COMPLETE"
+          },
+          {
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/old/00000000-0000-0000-0000-000000000002",
+            "StackName": "old",
+            "CreationTime": "2025-06-01T10:00:00Z",
+            "DeletionTime": "2025-07-01T10:00:00Z",
+            "StackStatus": "DELETE_COMPLETE"
+          },
+          {
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/platform/00000000-0000-0000-0000-000000000003",
+            "StackName": "platform",
+            "CreationTime": "2025-11-01T10:00:00Z",
+            "StackStatus": "UPDATE_COMPLETE"
+          },
+          {
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/platform-Network-ABC/00000000-0000-0000-0000-000000000004",
+            "StackName": "platform-Network-ABC",
+            "CreationTime": "2025-11-01T10:05:00Z",
+            "StackStatus": "CREATE_COMPLETE",
+            "ParentId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/platform/00000000-0000-0000-0000-000000000003",
+            "RootId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/platform/00000000-0000-0000-0000-000000000003"
+          }
+        ]
+      }
+    ],
+    "DescribeStackResources": [
+      {
+        "StackResources": [
+          {
+            "StackName": "orders",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+            "LogicalResourceId": "WebInstance",
+            "PhysicalResourceId": "i-0orders1",
+            "ResourceType": "AWS::EC2::Instance",
+            "Timestamp": "2025-12-01T10:03:00Z",
+            "ResourceStatus": "CREATE_COMPLETE"
+          },
+          {
+            "StackName": "orders",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+            "LogicalResourceId": "Database",
+            "PhysicalResourceId": "orders-db",
+            "ResourceType": "AWS::RDS::DBInstance",
+            "Timestamp": "2025-12-01T10:10:00Z",
+            "ResourceStatus": "CREATE_COMPLETE"
+          },
+          {
+            "StackName": "orders",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+            "LogicalResourceId": "LoadBalancer",
+            "PhysicalResourceId": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/app/orders-alb/0000000000000001",
+            "ResourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "Timestamp": "2025-12-01T10:05:00Z",
+            "ResourceStatus": "CREATE_COMPLETE"
+          },
+          {
+            "StackName": "orders",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+            "LogicalResourceId": "Thing",
+            "PhysicalResourceId": "custom-123",
+            "ResourceType": "Custom::Thing",
+            "Timestamp": "2025-12-01T10:06:00Z",
+            "ResourceStatus": "CREATE_COMPLETE"
+          },
+          {
+            "StackName": "orders",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+            "LogicalResourceId": "Assets",
+            "PhysicalResourceId": "orders-assets",
+            "ResourceType": "AWS::S3::Bucket",
+            "Timestamp": "2025-12-01T10:02:00Z",
+            "ResourceStatus": "CREATE_COMPLETE"
+          }
+        ]
+      },
+      {
+        "StackResources": [
+          {
+            "StackName": "old",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/old/00000000-0000-0000-0000-000000000002",
+            "LogicalResourceId": "OldInstance",
+            "PhysicalResourceId": "i-0old",
+            "ResourceType": "AWS::EC2::Instance",
+            "Timestamp": "2025-06-01T10:03:00Z",
+            "ResourceStatus": "DELETE_COMPLETE"
+          }
+        ]
+      },
+      {
+        "StackResources": [
+          {
+            "StackName": "platform",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/platform/00000000-0000-0000-0000-000000000003",
+            "LogicalResourceId": "Network",
+            "PhysicalResourceId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/platform-Network-ABC/00000000-0000-0000-0000-000000000004",
+            "ResourceType": "AWS::CloudFormation::Stack",
+            "Timestamp": "2025-11-01T10:05:00Z",
+            "ResourceStatus": "CREATE_COMPLETE"
+          },
+          {
+            "StackName": "platform",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/platform/00000000-0000-0000-0000-000000000003",
+            "LogicalResourceId": "Alerts",
+            "PhysicalResourceId": "arn:aws:sns:eu-west-1:111111111111:platform-alerts",
+            "ResourceType": "AWS::SNS::Topic",
+            "Timestamp": "2025-11-01T10:06:00Z",
+            "ResourceStatus": "CREATE_COMPLETE"
+          }
+        ]
+      },
+      {
+        "StackResources": [
+          {
+            "StackName": "platform-Network-ABC",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/platform-Network-ABC/00000000-0000-0000-0000-000000000004",
+            "LogicalResourceId": "Vpc",
+            "PhysicalResourceId": "vpc-0platform",
+            "ResourceType": "AWS::EC2::VPC",
+            "Timestamp": "2025-11-01T10:07:00Z",
+            "ResourceStatus": "CREATE_COMPLETE"
+          },
+          {
+            "StackName": "platform-Network-ABC",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/platform-Network-ABC/00000000-0000-0000-0000-000000000004",
+            "LogicalResourceId": "Subnet",
+            "PhysicalResourceId": "subnet-0platform",
+            "ResourceType": "AWS::EC2::Subnet",
+            "Timestamp": "2025-11-01T10:08:00Z",
+            "ResourceStatus": "CREATE_COMPLETE"
+          }
+        ]
+      }
+    ]
+  },
+  "status": "ok",
+  "notes": []
+}

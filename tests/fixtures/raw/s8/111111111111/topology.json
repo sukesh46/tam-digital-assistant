@@ -1,0 +1,125 @@
+{
+  "account_id": "111111111111",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "notes": [],
+  "operations_called": [
+    "DescribeVpcs",
+    "DescribeSubnets",
+    "DescribeSecurityGroups",
+    "DescribeInstances",
+    "DescribeVpcPeeringConnections",
+    "DescribeTransitGatewayAttachments",
+    "DescribeLoadBalancers",
+    "DescribeTargetGroups"
+  ],
+  "payload": {
+    "DescribeInstances": [
+      {
+        "Reservations": [
+          {
+            "Instances": [
+              {
+                "InstanceId": "i-0s8app1",
+                "SecurityGroups": [],
+                "State": {
+                  "Code": 16,
+                  "Name": "running"
+                },
+                "SubnetId": "subnet-0s8a",
+                "VpcId": "vpc-0s8a"
+              }
+            ],
+            "OwnerId": "111111111111",
+            "ReservationId": "r-0000"
+          }
+        ]
+      }
+    ],
+    "DescribeLoadBalancers": [
+      {
+        "LoadBalancers": []
+      }
+    ],
+    "DescribeSecurityGroups": [
+      {
+        "SecurityGroups": []
+      }
+    ],
+    "DescribeSubnets": [
+      {
+        "Subnets": [
+          {
+            "OwnerId": "111111111111",
+            "SubnetId": "subnet-0s8a",
+            "VpcId": "vpc-0s8a"
+          }
+        ]
+      }
+    ],
+    "DescribeTargetGroups": [
+      {
+        "TargetGroups": []
+      }
+    ],
+    "DescribeTransitGatewayAttachments": [
+      {
+        "TransitGatewayAttachments": []
+      }
+    ],
+    "DescribeVpcPeeringConnections": [
+      {
+        "VpcPeeringConnections": [
+          {
+            "AccepterVpcInfo": {
+              "OwnerId": "222222222222",
+              "Region": "eu-west-1",
+              "VpcId": "vpc-0s8b"
+            },
+            "RequesterVpcInfo": {
+              "OwnerId": "111111111111",
+              "Region": "eu-west-1",
+              "VpcId": "vpc-0s8a"
+            },
+            "Status": {
+              "Code": "active",
+              "Message": "Active"
+            },
+            "VpcPeeringConnectionId": "pcx-0s8ab"
+          },
+          {
+            "AccepterVpcInfo": {
+              "OwnerId": "333333333333",
+              "Region": "eu-west-1",
+              "VpcId": "vpc-0s8c"
+            },
+            "RequesterVpcInfo": {
+              "OwnerId": "111111111111",
+              "Region": "eu-west-1",
+              "VpcId": "vpc-0s8a"
+            },
+            "Status": {
+              "Code": "active",
+              "Message": "Active"
+            },
+            "VpcPeeringConnectionId": "pcx-0s8ac"
+          }
+        ]
+      }
+    ],
+    "DescribeVpcs": [
+      {
+        "Vpcs": [
+          {
+            "IsDefault": false,
+            "OwnerId": "111111111111",
+            "VpcId": "vpc-0s8a"
+          }
+        ]
+      }
+    ]
+  },
+  "region": "eu-west-1",
+  "snapshot_id": "s8-111111111111-eu-west-1-topology",
+  "source": "topology",
+  "status": "ok"
+}

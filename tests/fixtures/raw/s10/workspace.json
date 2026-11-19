@@ -1,0 +1,10 @@
+{
+  "workspace_id": "ws-s10",
+  "customer": "example-customer",
+  "approved_account_ids": [
+    "111111111111"
+  ],
+  "regions": [
+    "eu-west-1"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "scenario": "s7",
+  "description": "Nested stacks: the child stack's resources belong to the child group; the parent link is recorded.",
+  "workloads": [
+    {
+      "name": "platform",
+      "members": [
+        "111111111111|eu-west-1|arn:aws:cloudformation:eu-west-1:111111111111:stack/platform/00000000-0000-0000-0000-000000000001",
+        "111111111111|eu-west-1|arn:aws:sns:eu-west-1:111111111111:platform-alerts"
+      ]
+    },
+    {
+      "name": "platform-Network-XYZ",
+      "members": [
+        "111111111111|eu-west-1|arn:aws:cloudformation:eu-west-1:111111111111:stack/platform-Network-XYZ/00000000-0000-0000-0000-000000000002",
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:vpc/vpc-0s7",
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:subnet/subnet-0s7a"
+      ]
+    }
+  ],
+  "shared": []
+}

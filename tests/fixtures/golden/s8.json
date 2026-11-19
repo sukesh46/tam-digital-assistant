@@ -1,0 +1,16 @@
+{
+  "scenario": "s8",
+  "description": "Cross-account: peering to approved account 222222222222 (collected) and to unapproved account 333333333333.",
+  "workloads": [
+    {
+      "name": "app",
+      "members": [
+        "111111111111|eu-west-1|arn:aws:cloudformation:eu-west-1:111111111111:stack/app/00000000-0000-0000-0000-000000000001",
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:instance/i-0s8app1",
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:vpc/vpc-0s8a",
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:subnet/subnet-0s8a"
+      ]
+    }
+  ],
+  "shared": []
+}

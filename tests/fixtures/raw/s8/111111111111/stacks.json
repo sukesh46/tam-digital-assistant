@@ -1,0 +1,51 @@
+{
+  "account_id": "111111111111",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "notes": [],
+  "operations_called": [
+    "ListStacks",
+    "DescribeStackResources"
+  ],
+  "payload": {
+    "DescribeStackResources": [
+      {
+        "StackResources": [
+          {
+            "LogicalResourceId": "Web",
+            "PhysicalResourceId": "i-0s8app1",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceType": "AWS::EC2::Instance",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/app/00000000-0000-0000-0000-000000000001",
+            "StackName": "app",
+            "Timestamp": "2025-12-01T10:05:00Z"
+          },
+          {
+            "LogicalResourceId": "Vpc",
+            "PhysicalResourceId": "vpc-0s8a",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceType": "AWS::EC2::VPC",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/app/00000000-0000-0000-0000-000000000001",
+            "StackName": "app",
+            "Timestamp": "2025-12-01T10:05:00Z"
+          }
+        ]
+      }
+    ],
+    "ListStacks": [
+      {
+        "StackSummaries": [
+          {
+            "CreationTime": "2025-12-01T10:00:00Z",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/app/00000000-0000-0000-0000-000000000001",
+            "StackName": "app",
+            "StackStatus": "CREATE_COMPLETE"
+          }
+        ]
+      }
+    ]
+  },
+  "region": "eu-west-1",
+  "snapshot_id": "s8-111111111111-eu-west-1-stacks",
+  "source": "stacks",
+  "status": "ok"
+}

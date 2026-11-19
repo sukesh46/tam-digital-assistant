@@ -1,0 +1,61 @@
+{
+  "account_id": "111111111111",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "notes": [],
+  "operations_called": [
+    "DescribeVpcs",
+    "DescribeSubnets",
+    "DescribeSecurityGroups",
+    "DescribeInstances",
+    "DescribeVpcPeeringConnections",
+    "DescribeTransitGatewayAttachments",
+    "DescribeLoadBalancers",
+    "DescribeTargetGroups"
+  ],
+  "payload": {
+    "DescribeInstances": [
+      {
+        "Reservations": []
+      }
+    ],
+    "DescribeLoadBalancers": [
+      {
+        "LoadBalancers": []
+      }
+    ],
+    "DescribeSecurityGroups": [
+      {
+        "SecurityGroups": []
+      }
+    ],
+    "DescribeSubnets": [
+      {
+        "Subnets": []
+      }
+    ],
+    "DescribeTargetGroups": [
+      {
+        "TargetGroups": []
+      }
+    ],
+    "DescribeTransitGatewayAttachments": [
+      {
+        "TransitGatewayAttachments": []
+      }
+    ],
+    "DescribeVpcPeeringConnections": [
+      {
+        "VpcPeeringConnections": []
+      }
+    ],
+    "DescribeVpcs": [
+      {
+        "Vpcs": []
+      }
+    ]
+  },
+  "region": "eu-west-1",
+  "snapshot_id": "s3-111111111111-eu-west-1-topology",
+  "source": "topology",
+  "status": "ok"
+}

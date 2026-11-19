@@ -1,0 +1,57 @@
+{
+  "snapshot_id": "unit-111111111111-eu-west-1-tags",
+  "source": "tags",
+  "account_id": "111111111111",
+  "region": "eu-west-1",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "operations_called": ["GetResources", "GetResources"],
+  "payload": {
+    "GetResources": [
+      {
+        "ResourceTagMappingList": [
+          {
+            "ResourceARN": "arn:aws:ec2:eu-west-1:111111111111:instance/i-0orders1",
+            "Tags": [
+              {"Key": "app", "Value": "orders"},
+              {"Key": "Name", "Value": "orders-web-1"}
+            ]
+          },
+          {
+            "ResourceARN": "arn:aws:ec2:eu-west-1:111111111111:instance/i-0orders2",
+            "Tags": [
+              {"Key": "App", "Value": "orders"},
+              {"Key": "env", "Value": "prod"}
+            ]
+          }
+        ],
+        "PaginationToken": "page-2"
+      },
+      {
+        "ResourceTagMappingList": [
+          {
+            "ResourceARN": "arn:aws:rds:eu-west-1:111111111111:db:orders-db",
+            "Tags": [{"Key": "app", "Value": "orders"}]
+          },
+          {
+            "ResourceARN": "arn:aws:s3:::billing-bucket",
+            "Tags": [{"Key": "app", "Value": "billing"}]
+          },
+          {
+            "ResourceARN": "arn:aws:ec2:eu-west-1:111111111111:instance/i-0untagged",
+            "Tags": []
+          },
+          {
+            "ResourceARN": "arn:aws:ec2:eu-west-1:111111111111:instance/i-0conflict",
+            "Tags": [
+              {"Key": "app", "Value": "orders"},
+              {"Key": "project", "Value": "billing"}
+            ]
+          }
+        ],
+        "PaginationToken": ""
+      }
+    ]
+  },
+  "status": "ok",
+  "notes": []
+}

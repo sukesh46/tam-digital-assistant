@@ -1,0 +1,147 @@
+{
+  "snapshot_id": "unit-111111111111-eu-west-1-topology",
+  "source": "topology",
+  "account_id": "111111111111",
+  "region": "eu-west-1",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "operations_called": [
+    "DescribeVpcs", "DescribeSubnets", "DescribeSecurityGroups", "DescribeInstances",
+    "DescribeVpcPeeringConnections", "DescribeTransitGatewayAttachments",
+    "DescribeLoadBalancers", "DescribeTargetGroups", "DescribeTargetHealth", "DescribeTargetHealth"
+  ],
+  "payload": {
+    "DescribeVpcs": [
+      {"Vpcs": [{"VpcId": "vpc-0main", "OwnerId": "111111111111", "CidrBlock": "10.0.0.0/16", "IsDefault": false}]}
+    ],
+    "DescribeSubnets": [
+      {
+        "Subnets": [
+          {"SubnetId": "subnet-0a", "VpcId": "vpc-0main", "OwnerId": "111111111111", "AvailabilityZone": "eu-west-1a", "CidrBlock": "10.0.1.0/24", "SubnetArn": "arn:aws:ec2:eu-west-1:111111111111:subnet/subnet-0a"},
+          {"SubnetId": "subnet-0b", "VpcId": "vpc-0main", "OwnerId": "111111111111", "AvailabilityZone": "eu-west-1b", "CidrBlock": "10.0.2.0/24"}
+        ]
+      }
+    ],
+    "DescribeSecurityGroups": [
+      {
+        "SecurityGroups": [
+          {"GroupId": "sg-0web", "GroupName": "web", "VpcId": "vpc-0main", "OwnerId": "111111111111", "Description": "web"},
+          {"GroupId": "sg-0db", "GroupName": "db", "VpcId": "vpc-0main", "OwnerId": "111111111111", "Description": "db"}
+        ]
+      }
+    ],
+    "DescribeInstances": [
+      {
+        "Reservations": [
+          {
+            "ReservationId": "r-01",
+            "OwnerId": "111111111111",
+            "Instances": [
+              {
+                "InstanceId": "i-0web1", "SubnetId": "subnet-0a", "VpcId": "vpc-0main",
+                "PrivateIpAddress": "10.0.1.10",
+                "SecurityGroups": [{"GroupId": "sg-0web", "GroupName": "web"}],
+                "State": {"Code": 16, "Name": "running"},
+                "Tags": [{"Key": "Name", "Value": "web-1"}]
+              },
+              {
+                "InstanceId": "i-0web2", "SubnetId": "subnet-0b", "VpcId": "vpc-0main",
+                "PrivateIpAddress": "10.0.2.10",
+                "SecurityGroups": [{"GroupId": "sg-0web", "GroupName": "web"}],
+                "State": {"Code": 16, "Name": "running"}
+              },
+              {
+                "InstanceId": "i-0term",
+                "State": {"Code": 48, "Name": "terminated"}
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "DescribeVpcPeeringConnections": [
+      {
+        "VpcPeeringConnections": [
+          {
+            "VpcPeeringConnectionId": "pcx-01",
+            "RequesterVpcInfo": {"OwnerId": "111111111111", "VpcId": "vpc-0main", "Region": "eu-west-1", "CidrBlock": "10.0.0.0/16"},
+            "AccepterVpcInfo": {"OwnerId": "222222222222", "VpcId": "vpc-0peer", "Region": "eu-west-1", "CidrBlock": "10.1.0.0/16"},
+            "Status": {"Code": "active", "Message": "Active"}
+          },
+          {
+            "VpcPeeringConnectionId": "pcx-02",
+            "RequesterVpcInfo": {"OwnerId": "111111111111", "VpcId": "vpc-0main", "Region": "eu-west-1"},
+            "AccepterVpcInfo": {"OwnerId": "111111111111", "VpcId": "vpc-0other", "Region": "eu-west-1"},
+            "Status": {"Code": "active", "Message": "Active"}
+          },
+          {
+            "VpcPeeringConnectionId": "pcx-03",
+            "RequesterVpcInfo": {"OwnerId": "111111111111", "VpcId": "vpc-0main", "Region": "eu-west-1"},
+            "AccepterVpcInfo": {"OwnerId": "333333333333", "VpcId": "vpc-0gone", "Region": "eu-west-1"},
+            "Status": {"Code": "deleted", "Message": "Deleted"}
+          }
+        ]
+      }
+    ],
+    "DescribeTransitGatewayAttachments": [
+      {
+        "TransitGatewayAttachments": [
+          {
+            "TransitGatewayAttachmentId": "tgw-attach-01", "TransitGatewayId": "tgw-0shared",
+            "TransitGatewayOwnerId": "333333333333", "ResourceOwnerId": "111111111111",
+            "ResourceType": "vpc", "ResourceId": "vpc-0main", "State": "available"
+          },
+          {
+            "TransitGatewayAttachmentId": "tgw-attach-02", "TransitGatewayId": "tgw-0local",
+            "TransitGatewayOwnerId": "111111111111", "ResourceOwnerId": "222222222222",
+            "ResourceType": "vpc", "ResourceId": "vpc-0remote", "State": "available"
+          }
+        ]
+      }
+    ],
+    "DescribeLoadBalancers": [
+      {
+        "LoadBalancers": [
+          {
+            "LoadBalancerArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/app/web/0000000000000001",
+            "LoadBalancerName": "web", "VpcId": "vpc-0main", "Type": "application", "Scheme": "internet-facing",
+            "AvailabilityZones": [{"ZoneName": "eu-west-1a", "SubnetId": "subnet-0a"}, {"ZoneName": "eu-west-1b", "SubnetId": "subnet-0b"}],
+            "SecurityGroups": ["sg-0web"]
+          }
+        ]
+      }
+    ],
+    "DescribeTargetGroups": [
+      {
+        "TargetGroups": [
+          {
+            "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/web-tg/0000000000000001",
+            "TargetGroupName": "web-tg", "VpcId": "vpc-0main", "TargetType": "instance",
+            "LoadBalancerArns": ["arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/app/web/0000000000000001"]
+          },
+          {
+            "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/ip-tg/0000000000000002",
+            "TargetGroupName": "ip-tg", "VpcId": "vpc-0main", "TargetType": "ip",
+            "LoadBalancerArns": []
+          }
+        ]
+      }
+    ],
+    "DescribeTargetHealth": [
+      {
+        "_TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/web-tg/0000000000000001",
+        "TargetHealthDescriptions": [
+          {"Target": {"Id": "i-0web1", "Port": 80}, "TargetHealth": {"State": "healthy"}},
+          {"Target": {"Id": "i-0web2", "Port": 80}, "TargetHealth": {"State": "healthy"}}
+        ]
+      },
+      {
+        "_TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/ip-tg/0000000000000002",
+        "TargetHealthDescriptions": [
+          {"Target": {"Id": "10.0.1.25", "Port": 8080}, "TargetHealth": {"State": "healthy"}}
+        ]
+      }
+    ]
+  },
+  "status": "ok",
+  "notes": []
+}

@@ -1,0 +1,39 @@
+{
+  "account_id": "111111111111",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "notes": [],
+  "operations_called": [
+    "GetResources"
+  ],
+  "payload": {
+    "GetResources": [
+      {
+        "PaginationToken": "",
+        "ResourceTagMappingList": [
+          {
+            "ResourceARN": "arn:aws:ec2:eu-west-1:111111111111:instance/i-0s1orders1",
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "orders-web-1"
+              }
+            ]
+          },
+          {
+            "ResourceARN": "arn:aws:ec2:eu-west-1:111111111111:instance/i-0s1billing1",
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "billing-web-1"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "region": "eu-west-1",
+  "snapshot_id": "s1-111111111111-eu-west-1-tags",
+  "source": "tags",
+  "status": "ok"
+}

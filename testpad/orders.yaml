@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: workload-graph test pad, orders (one empty bucket and one topic; free-tier scale).
+
+Resources:
+  OrdersBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - Key: app
+          Value: orders
+
+  OrdersTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Tags:
+        - Key: app
+          Value: orders

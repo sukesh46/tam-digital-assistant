@@ -1,0 +1,6 @@
+{
+  "scenario": "s5",
+  "description": "Nothing declared; only VPCs, subnets and untagged instances. No workload can be proposed with confidence.",
+  "workloads": [],
+  "shared": []
+}

@@ -1,0 +1,246 @@
+{
+  "account_id": "111111111111",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "notes": [],
+  "operations_called": [
+    "DescribeVpcs",
+    "DescribeSubnets",
+    "DescribeSecurityGroups",
+    "DescribeInstances",
+    "DescribeVpcPeeringConnections",
+    "DescribeTransitGatewayAttachments",
+    "DescribeLoadBalancers",
+    "DescribeTargetGroups",
+    "DescribeTargetHealth",
+    "DescribeTargetHealth"
+  ],
+  "payload": {
+    "DescribeInstances": [
+      {
+        "Reservations": [
+          {
+            "Instances": [
+              {
+                "InstanceId": "i-0s1orders1",
+                "SecurityGroups": [
+                  {
+                    "GroupId": "sg-0s1orders",
+                    "GroupName": "sg-0s1orders"
+                  }
+                ],
+                "State": {
+                  "Code": 16,
+                  "Name": "running"
+                },
+                "SubnetId": "subnet-0s1a",
+                "VpcId": "vpc-0s1"
+              }
+            ],
+            "OwnerId": "111111111111",
+            "ReservationId": "r-0000"
+          },
+          {
+            "Instances": [
+              {
+                "InstanceId": "i-0s1orders2",
+                "SecurityGroups": [
+                  {
+                    "GroupId": "sg-0s1orders",
+                    "GroupName": "sg-0s1orders"
+                  }
+                ],
+                "State": {
+                  "Code": 16,
+                  "Name": "running"
+                },
+                "SubnetId": "subnet-0s1a",
+                "VpcId": "vpc-0s1"
+              }
+            ],
+            "OwnerId": "111111111111",
+            "ReservationId": "r-0001"
+          },
+          {
+            "Instances": [
+              {
+                "InstanceId": "i-0s1billing1",
+                "SecurityGroups": [
+                  {
+                    "GroupId": "sg-0s1billing",
+                    "GroupName": "sg-0s1billing"
+                  }
+                ],
+                "State": {
+                  "Code": 16,
+                  "Name": "running"
+                },
+                "SubnetId": "subnet-0s1b",
+                "VpcId": "vpc-0s1"
+              }
+            ],
+            "OwnerId": "111111111111",
+            "ReservationId": "r-0002"
+          }
+        ]
+      }
+    ],
+    "DescribeLoadBalancers": [
+      {
+        "LoadBalancers": [
+          {
+            "AvailabilityZones": [
+              {
+                "SubnetId": "subnet-0s1a",
+                "ZoneName": "eu-west-1a"
+              }
+            ],
+            "LoadBalancerArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/app/orders-alb/0000000000000001",
+            "LoadBalancerName": "orders-alb",
+            "SecurityGroups": [
+              "sg-0s1orders"
+            ],
+            "Type": "application",
+            "VpcId": "vpc-0s1"
+          },
+          {
+            "AvailabilityZones": [
+              {
+                "SubnetId": "subnet-0s1b",
+                "ZoneName": "eu-west-1a"
+              }
+            ],
+            "LoadBalancerArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/app/billing-alb/0000000000000001",
+            "LoadBalancerName": "billing-alb",
+            "SecurityGroups": [
+              "sg-0s1billing"
+            ],
+            "Type": "application",
+            "VpcId": "vpc-0s1"
+          }
+        ]
+      }
+    ],
+    "DescribeSecurityGroups": [
+      {
+        "SecurityGroups": [
+          {
+            "GroupId": "sg-0s1orders",
+            "GroupName": "sg-0s1orders",
+            "OwnerId": "111111111111",
+            "VpcId": "vpc-0s1"
+          },
+          {
+            "GroupId": "sg-0s1billing",
+            "GroupName": "sg-0s1billing",
+            "OwnerId": "111111111111",
+            "VpcId": "vpc-0s1"
+          }
+        ]
+      }
+    ],
+    "DescribeSubnets": [
+      {
+        "Subnets": [
+          {
+            "OwnerId": "111111111111",
+            "SubnetId": "subnet-0s1a",
+            "VpcId": "vpc-0s1"
+          },
+          {
+            "OwnerId": "111111111111",
+            "SubnetId": "subnet-0s1b",
+            "VpcId": "vpc-0s1"
+          }
+        ]
+      }
+    ],
+    "DescribeTargetGroups": [
+      {
+        "TargetGroups": [
+          {
+            "LoadBalancerArns": [
+              "arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/app/orders-alb/0000000000000001"
+            ],
+            "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/orders-tg/0000000000000001",
+            "TargetGroupName": "orders-tg",
+            "TargetType": "instance",
+            "VpcId": "vpc-0s1"
+          },
+          {
+            "LoadBalancerArns": [
+              "arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/app/billing-alb/0000000000000001"
+            ],
+            "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/billing-tg/0000000000000001",
+            "TargetGroupName": "billing-tg",
+            "TargetType": "instance",
+            "VpcId": "vpc-0s1"
+          }
+        ]
+      }
+    ],
+    "DescribeTargetHealth": [
+      {
+        "TargetHealthDescriptions": [
+          {
+            "Target": {
+              "Id": "i-0s1orders1",
+              "Port": 80
+            },
+            "TargetHealth": {
+              "State": "healthy"
+            }
+          },
+          {
+            "Target": {
+              "Id": "i-0s1orders2",
+              "Port": 80
+            },
+            "TargetHealth": {
+              "State": "healthy"
+            }
+          }
+        ],
+        "_TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/orders-tg/0000000000000001"
+      },
+      {
+        "TargetHealthDescriptions": [
+          {
+            "Target": {
+              "Id": "i-0s1billing1",
+              "Port": 80
+            },
+            "TargetHealth": {
+              "State": "healthy"
+            }
+          }
+        ],
+        "_TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/billing-tg/0000000000000001"
+      }
+    ],
+    "DescribeTransitGatewayAttachments": [
+      {
+        "TransitGatewayAttachments": []
+      }
+    ],
+    "DescribeVpcPeeringConnections": [
+      {
+        "VpcPeeringConnections": []
+      }
+    ],
+    "DescribeVpcs": [
+      {
+        "Vpcs": [
+          {
+            "IsDefault": false,
+            "OwnerId": "111111111111",
+            "VpcId": "vpc-0s1"
+          }
+        ]
+      }
+    ]
+  },
+  "region": "eu-west-1",
+  "snapshot_id": "s1-111111111111-eu-west-1-topology",
+  "source": "topology",
+  "status": "ok"
+}

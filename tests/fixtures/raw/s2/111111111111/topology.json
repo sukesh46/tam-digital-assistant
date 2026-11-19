@@ -1,0 +1,144 @@
+{
+  "account_id": "111111111111",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "notes": [],
+  "operations_called": [
+    "DescribeVpcs",
+    "DescribeSubnets",
+    "DescribeSecurityGroups",
+    "DescribeInstances",
+    "DescribeVpcPeeringConnections",
+    "DescribeTransitGatewayAttachments",
+    "DescribeLoadBalancers",
+    "DescribeTargetGroups"
+  ],
+  "payload": {
+    "DescribeInstances": [
+      {
+        "Reservations": [
+          {
+            "Instances": [
+              {
+                "InstanceId": "i-0s2orders1",
+                "SecurityGroups": [
+                  {
+                    "GroupId": "sg-0s2",
+                    "GroupName": "sg-0s2"
+                  }
+                ],
+                "State": {
+                  "Code": 16,
+                  "Name": "running"
+                },
+                "SubnetId": "subnet-0s2a",
+                "VpcId": "vpc-0s2"
+              }
+            ],
+            "OwnerId": "111111111111",
+            "ReservationId": "r-0000"
+          },
+          {
+            "Instances": [
+              {
+                "InstanceId": "i-0s2orders2",
+                "SecurityGroups": [
+                  {
+                    "GroupId": "sg-0s2",
+                    "GroupName": "sg-0s2"
+                  }
+                ],
+                "State": {
+                  "Code": 16,
+                  "Name": "running"
+                },
+                "SubnetId": "subnet-0s2a",
+                "VpcId": "vpc-0s2"
+              }
+            ],
+            "OwnerId": "111111111111",
+            "ReservationId": "r-0001"
+          },
+          {
+            "Instances": [
+              {
+                "InstanceId": "i-0s2billing1",
+                "SecurityGroups": [
+                  {
+                    "GroupId": "sg-0s2",
+                    "GroupName": "sg-0s2"
+                  }
+                ],
+                "State": {
+                  "Code": 16,
+                  "Name": "running"
+                },
+                "SubnetId": "subnet-0s2a",
+                "VpcId": "vpc-0s2"
+              }
+            ],
+            "OwnerId": "111111111111",
+            "ReservationId": "r-0002"
+          }
+        ]
+      }
+    ],
+    "DescribeLoadBalancers": [
+      {
+        "LoadBalancers": []
+      }
+    ],
+    "DescribeSecurityGroups": [
+      {
+        "SecurityGroups": [
+          {
+            "GroupId": "sg-0s2",
+            "GroupName": "sg-0s2",
+            "OwnerId": "111111111111",
+            "VpcId": "vpc-0s2"
+          }
+        ]
+      }
+    ],
+    "DescribeSubnets": [
+      {
+        "Subnets": [
+          {
+            "OwnerId": "111111111111",
+            "SubnetId": "subnet-0s2a",
+            "VpcId": "vpc-0s2"
+          }
+        ]
+      }
+    ],
+    "DescribeTargetGroups": [
+      {
+        "TargetGroups": []
+      }
+    ],
+    "DescribeTransitGatewayAttachments": [
+      {
+        "TransitGatewayAttachments": []
+      }
+    ],
+    "DescribeVpcPeeringConnections": [
+      {
+        "VpcPeeringConnections": []
+      }
+    ],
+    "DescribeVpcs": [
+      {
+        "Vpcs": [
+          {
+            "IsDefault": false,
+            "OwnerId": "111111111111",
+            "VpcId": "vpc-0s2"
+          }
+        ]
+      }
+    ]
+  },
+  "region": "eu-west-1",
+  "snapshot_id": "s2-111111111111-eu-west-1-topology",
+  "source": "topology",
+  "status": "ok"
+}

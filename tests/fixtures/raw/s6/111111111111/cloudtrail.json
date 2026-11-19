@@ -1,0 +1,74 @@
+{
+  "account_id": "111111111111",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "notes": [],
+  "operations_called": [
+    "LookupEvents",
+    "LookupEvents"
+  ],
+  "payload": {
+    "LookupEvents": [
+      {
+        "Events": [
+          {
+            "CloudTrailEvent": "{\"awsRegion\": \"eu-west-1\", \"eventName\": \"RunInstances\", \"eventTime\": \"2026-01-10T10:00:00Z\", \"eventVersion\": \"1.08\", \"recipientAccountId\": \"111111111111\", \"sourceIPAddress\": \"192.0.2.10\", \"userAgent\": \"example-agent/1.0\", \"userIdentity\": {\"accountId\": \"111111111111\", \"arn\": \"arn:aws:sts::111111111111:assumed-role/deployer/ci\", \"type\": \"AssumedRole\"}}",
+            "EventId": "s6-e1",
+            "EventName": "RunInstances",
+            "EventSource": "ec2.amazonaws.com",
+            "EventTime": "2026-01-10T10:00:00Z",
+            "ReadOnly": "false",
+            "Resources": [
+              {
+                "ResourceName": "i-0s6orders1",
+                "ResourceType": "AWS::EC2::Instance"
+              }
+            ],
+            "Username": "ci"
+          },
+          {
+            "CloudTrailEvent": "{\"awsRegion\": \"eu-west-1\", \"eventName\": \"CreateDBInstance\", \"eventTime\": \"2026-01-10T10:04:00Z\", \"eventVersion\": \"1.08\", \"recipientAccountId\": \"111111111111\", \"sourceIPAddress\": \"192.0.2.10\", \"userAgent\": \"example-agent/1.0\", \"userIdentity\": {\"accountId\": \"111111111111\", \"arn\": \"arn:aws:sts::111111111111:assumed-role/deployer/ci\", \"type\": \"AssumedRole\"}}",
+            "EventId": "s6-e2",
+            "EventName": "CreateDBInstance",
+            "EventSource": "ec2.amazonaws.com",
+            "EventTime": "2026-01-10T10:04:00Z",
+            "ReadOnly": "false",
+            "Resources": [
+              {
+                "ResourceName": "orders-db",
+                "ResourceType": "AWS::RDS::DBInstance"
+              }
+            ],
+            "Username": "ci"
+          },
+          {
+            "CloudTrailEvent": "{\"awsRegion\": \"eu-west-1\", \"eventName\": \"RunInstances\", \"eventTime\": \"2026-01-10T10:15:00Z\", \"eventVersion\": \"1.08\", \"recipientAccountId\": \"111111111111\", \"sourceIPAddress\": \"192.0.2.10\", \"userAgent\": \"example-agent/1.0\", \"userIdentity\": {\"accountId\": \"111111111111\", \"arn\": \"arn:aws:sts::111111111111:assumed-role/deployer/ci\", \"type\": \"AssumedRole\"}}",
+            "EventId": "s6-e3",
+            "EventName": "RunInstances",
+            "EventSource": "ec2.amazonaws.com",
+            "EventTime": "2026-01-10T10:15:00Z",
+            "ReadOnly": "false",
+            "Resources": [
+              {
+                "ResourceName": "i-0s6new",
+                "ResourceType": "AWS::EC2::Instance"
+              }
+            ],
+            "Username": "ci"
+          }
+        ]
+      }
+    ],
+    "_seeds": [
+      {
+        "ResourceIds": [
+          "i-0s6orders1",
+          "orders-db"
+        ]
+      }
+    ]
+  },
+  "region": "eu-west-1",
+  "snapshot_id": "s6-111111111111-eu-west-1-cloudtrail",
+  "source": "cloudtrail",
+  "status": "ok"
+}

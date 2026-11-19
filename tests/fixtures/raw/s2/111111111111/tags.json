@@ -1,0 +1,83 @@
+{
+  "account_id": "111111111111",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "notes": [],
+  "operations_called": [
+    "GetResources"
+  ],
+  "payload": {
+    "GetResources": [
+      {
+        "PaginationToken": "",
+        "ResourceTagMappingList": [
+          {
+            "ResourceARN": "arn:aws:ec2:eu-west-1:111111111111:instance/i-0s2orders1",
+            "Tags": [
+              {
+                "Key": "app",
+                "Value": "orders"
+              },
+              {
+                "Key": "Name",
+                "Value": "orders-1"
+              }
+            ]
+          },
+          {
+            "ResourceARN": "arn:aws:ec2:eu-west-1:111111111111:instance/i-0s2orders2",
+            "Tags": [
+              {
+                "Key": "app",
+                "Value": "orders"
+              }
+            ]
+          },
+          {
+            "ResourceARN": "arn:aws:rds:eu-west-1:111111111111:db:orders-db",
+            "Tags": [
+              {
+                "Key": "app",
+                "Value": "orders"
+              }
+            ]
+          },
+          {
+            "ResourceARN": "arn:aws:s3:::orders-assets-example",
+            "Tags": [
+              {
+                "Key": "app",
+                "Value": "orders"
+              },
+              {
+                "Key": "env",
+                "Value": "prod"
+              }
+            ]
+          },
+          {
+            "ResourceARN": "arn:aws:ec2:eu-west-1:111111111111:instance/i-0s2billing1",
+            "Tags": [
+              {
+                "Key": "app",
+                "Value": "billing"
+              }
+            ]
+          },
+          {
+            "ResourceARN": "arn:aws:lambda:eu-west-1:111111111111:function:billing-fn",
+            "Tags": [
+              {
+                "Key": "app",
+                "Value": "billing"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "region": "eu-west-1",
+  "snapshot_id": "s2-111111111111-eu-west-1-tags",
+  "source": "tags",
+  "status": "ok"
+}

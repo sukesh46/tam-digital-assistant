@@ -1,0 +1,27 @@
+{
+  "scenario": "s4",
+  "description": "One load balancer (outside both stacks) fronts targets from two stacks.",
+  "workloads": [
+    {
+      "name": "orders",
+      "members": [
+        "111111111111|eu-west-1|arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:instance/i-0s4orders1",
+        "111111111111|eu-west-1|arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/orders-tg/0000000000000001"
+      ]
+    },
+    {
+      "name": "billing",
+      "members": [
+        "111111111111|eu-west-1|arn:aws:cloudformation:eu-west-1:111111111111:stack/billing/00000000-0000-0000-0000-000000000002",
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:instance/i-0s4billing1",
+        "111111111111|eu-west-1|arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/billing-tg/0000000000000001"
+      ]
+    }
+  ],
+  "shared": [
+    "111111111111|eu-west-1|arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/app/shared-alb/0000000000000001",
+    "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:vpc/vpc-0s4",
+    "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:subnet/subnet-0s4a"
+  ]
+}

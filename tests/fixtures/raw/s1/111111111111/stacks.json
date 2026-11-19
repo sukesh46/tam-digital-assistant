@@ -1,0 +1,143 @@
+{
+  "account_id": "111111111111",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "notes": [],
+  "operations_called": [
+    "ListStacks",
+    "DescribeStackResources",
+    "DescribeStackResources"
+  ],
+  "payload": {
+    "DescribeStackResources": [
+      {
+        "StackResources": [
+          {
+            "LogicalResourceId": "Web1",
+            "PhysicalResourceId": "i-0s1orders1",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceType": "AWS::EC2::Instance",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+            "StackName": "orders",
+            "Timestamp": "2025-12-01T10:05:00Z"
+          },
+          {
+            "LogicalResourceId": "Web2",
+            "PhysicalResourceId": "i-0s1orders2",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceType": "AWS::EC2::Instance",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+            "StackName": "orders",
+            "Timestamp": "2025-12-01T10:05:00Z"
+          },
+          {
+            "LogicalResourceId": "Db",
+            "PhysicalResourceId": "orders-db",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceType": "AWS::RDS::DBInstance",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+            "StackName": "orders",
+            "Timestamp": "2025-12-01T10:05:00Z"
+          },
+          {
+            "LogicalResourceId": "Alb",
+            "PhysicalResourceId": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/app/orders-alb/0000000000000001",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+            "StackName": "orders",
+            "Timestamp": "2025-12-01T10:05:00Z"
+          },
+          {
+            "LogicalResourceId": "Tg",
+            "PhysicalResourceId": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/orders-tg/0000000000000001",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceType": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+            "StackName": "orders",
+            "Timestamp": "2025-12-01T10:05:00Z"
+          },
+          {
+            "LogicalResourceId": "Sg",
+            "PhysicalResourceId": "sg-0s1orders",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceType": "AWS::EC2::SecurityGroup",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+            "StackName": "orders",
+            "Timestamp": "2025-12-01T10:05:00Z"
+          }
+        ]
+      },
+      {
+        "StackResources": [
+          {
+            "LogicalResourceId": "Web1",
+            "PhysicalResourceId": "i-0s1billing1",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceType": "AWS::EC2::Instance",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/billing/00000000-0000-0000-0000-000000000002",
+            "StackName": "billing",
+            "Timestamp": "2025-12-01T10:05:00Z"
+          },
+          {
+            "LogicalResourceId": "Db",
+            "PhysicalResourceId": "billing-db",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceType": "AWS::RDS::DBInstance",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/billing/00000000-0000-0000-0000-000000000002",
+            "StackName": "billing",
+            "Timestamp": "2025-12-01T10:05:00Z"
+          },
+          {
+            "LogicalResourceId": "Alb",
+            "PhysicalResourceId": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/app/billing-alb/0000000000000001",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/billing/00000000-0000-0000-0000-000000000002",
+            "StackName": "billing",
+            "Timestamp": "2025-12-01T10:05:00Z"
+          },
+          {
+            "LogicalResourceId": "Tg",
+            "PhysicalResourceId": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/billing-tg/0000000000000001",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceType": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/billing/00000000-0000-0000-0000-000000000002",
+            "StackName": "billing",
+            "Timestamp": "2025-12-01T10:05:00Z"
+          },
+          {
+            "LogicalResourceId": "Sg",
+            "PhysicalResourceId": "sg-0s1billing",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceType": "AWS::EC2::SecurityGroup",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/billing/00000000-0000-0000-0000-000000000002",
+            "StackName": "billing",
+            "Timestamp": "2025-12-01T10:05:00Z"
+          }
+        ]
+      }
+    ],
+    "ListStacks": [
+      {
+        "StackSummaries": [
+          {
+            "CreationTime": "2025-12-01T10:00:00Z",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+            "StackName": "orders",
+            "StackStatus": "CREATE_COMPLETE"
+          },
+          {
+            "CreationTime": "2025-12-01T10:00:00Z",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/billing/00000000-0000-0000-0000-000000000002",
+            "StackName": "billing",
+            "StackStatus": "CREATE_COMPLETE"
+          }
+        ]
+      }
+    ]
+  },
+  "region": "eu-west-1",
+  "snapshot_id": "s1-111111111111-eu-west-1-stacks",
+  "source": "stacks",
+  "status": "ok"
+}

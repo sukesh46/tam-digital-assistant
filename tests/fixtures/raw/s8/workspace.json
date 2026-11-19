@@ -1,0 +1,11 @@
+{
+  "workspace_id": "ws-s8",
+  "customer": "example-customer",
+  "approved_account_ids": [
+    "111111111111",
+    "222222222222"
+  ],
+  "regions": [
+    "eu-west-1"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "scenario": "s11",
+  "description": "Ambiguous: an undeclared instance shares a subnet and security group equally with two workloads; it belongs to neither until a human decides.",
+  "workloads": [
+    {
+      "name": "orders",
+      "members": [
+        "111111111111|eu-west-1|arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:instance/i-0s11orders1"
+      ]
+    },
+    {
+      "name": "billing",
+      "members": [
+        "111111111111|eu-west-1|arn:aws:cloudformation:eu-west-1:111111111111:stack/billing/00000000-0000-0000-0000-000000000002",
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:instance/i-0s11billing1"
+      ]
+    }
+  ],
+  "shared": [
+    "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:vpc/vpc-0s11",
+    "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:subnet/subnet-0s11",
+    "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:security-group/sg-0s11"
+  ]
+}

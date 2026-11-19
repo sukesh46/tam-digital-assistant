@@ -1,0 +1,17 @@
+{
+  "account_id": "111111111111",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "notes": [],
+  "operations_called": [],
+  "payload": {
+    "_seeds": [
+      {
+        "ResourceIds": []
+      }
+    ]
+  },
+  "region": "eu-west-1",
+  "snapshot_id": "s7-111111111111-eu-west-1-cloudtrail",
+  "source": "cloudtrail",
+  "status": "empty"
+}

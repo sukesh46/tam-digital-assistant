@@ -1,0 +1,70 @@
+{
+  "account_id": "111111111111",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "notes": [],
+  "operations_called": [
+    "GetResources"
+  ],
+  "payload": {
+    "GetResources": [
+      {
+        "PaginationToken": "",
+        "ResourceTagMappingList": [
+          {
+            "ResourceARN": "arn:aws:ec2:eu-west-1:111111111111:instance/i-0s3orders1",
+            "Tags": [
+              {
+                "Key": "app",
+                "Value": "orders"
+              }
+            ]
+          },
+          {
+            "ResourceARN": "arn:aws:ec2:eu-west-1:111111111111:instance/i-0s3orders2",
+            "Tags": [
+              {
+                "Key": "app",
+                "Value": "orders"
+              }
+            ]
+          },
+          {
+            "ResourceARN": "arn:aws:ec2:eu-west-1:111111111111:instance/i-0s3billing1",
+            "Tags": [
+              {
+                "Key": "app",
+                "Value": "billing"
+              }
+            ]
+          },
+          {
+            "ResourceARN": "arn:aws:ec2:eu-west-1:111111111111:instance/i-0s3billing2",
+            "Tags": [
+              {
+                "Key": "app",
+                "Value": "billing"
+              }
+            ]
+          },
+          {
+            "ResourceARN": "arn:aws:ec2:eu-west-1:111111111111:instance/i-0s3both",
+            "Tags": [
+              {
+                "Key": "app",
+                "Value": "orders"
+              },
+              {
+                "Key": "App",
+                "Value": "billing"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "region": "eu-west-1",
+  "snapshot_id": "s3-111111111111-eu-west-1-tags",
+  "source": "tags",
+  "status": "ok"
+}

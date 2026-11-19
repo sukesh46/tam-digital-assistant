@@ -1,0 +1,27 @@
+{
+  "scenario": "s2",
+  "description": "Tags only, no stacks (app=orders, app=billing).",
+  "workloads": [
+    {
+      "name": "orders",
+      "members": [
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:instance/i-0s2orders1",
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:instance/i-0s2orders2",
+        "111111111111|eu-west-1|arn:aws:rds:eu-west-1:111111111111:db:orders-db",
+        "111111111111|global|arn:aws:s3:::orders-assets-example"
+      ]
+    },
+    {
+      "name": "billing",
+      "members": [
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:instance/i-0s2billing1",
+        "111111111111|eu-west-1|arn:aws:lambda:eu-west-1:111111111111:function:billing-fn"
+      ]
+    }
+  ],
+  "shared": [
+    "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:vpc/vpc-0s2",
+    "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:subnet/subnet-0s2a",
+    "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:security-group/sg-0s2"
+  ]
+}

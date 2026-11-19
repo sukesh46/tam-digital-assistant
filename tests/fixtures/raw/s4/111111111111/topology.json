@@ -1,0 +1,171 @@
+{
+  "account_id": "111111111111",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "notes": [],
+  "operations_called": [
+    "DescribeVpcs",
+    "DescribeSubnets",
+    "DescribeSecurityGroups",
+    "DescribeInstances",
+    "DescribeVpcPeeringConnections",
+    "DescribeTransitGatewayAttachments",
+    "DescribeLoadBalancers",
+    "DescribeTargetGroups",
+    "DescribeTargetHealth",
+    "DescribeTargetHealth"
+  ],
+  "payload": {
+    "DescribeInstances": [
+      {
+        "Reservations": [
+          {
+            "Instances": [
+              {
+                "InstanceId": "i-0s4orders1",
+                "SecurityGroups": [],
+                "State": {
+                  "Code": 16,
+                  "Name": "running"
+                },
+                "SubnetId": "subnet-0s4a",
+                "VpcId": "vpc-0s4"
+              }
+            ],
+            "OwnerId": "111111111111",
+            "ReservationId": "r-0000"
+          },
+          {
+            "Instances": [
+              {
+                "InstanceId": "i-0s4billing1",
+                "SecurityGroups": [],
+                "State": {
+                  "Code": 16,
+                  "Name": "running"
+                },
+                "SubnetId": "subnet-0s4a",
+                "VpcId": "vpc-0s4"
+              }
+            ],
+            "OwnerId": "111111111111",
+            "ReservationId": "r-0001"
+          }
+        ]
+      }
+    ],
+    "DescribeLoadBalancers": [
+      {
+        "LoadBalancers": [
+          {
+            "AvailabilityZones": [
+              {
+                "SubnetId": "subnet-0s4a",
+                "ZoneName": "eu-west-1a"
+              }
+            ],
+            "LoadBalancerArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/app/shared-alb/0000000000000001",
+            "LoadBalancerName": "shared-alb",
+            "SecurityGroups": [],
+            "Type": "application",
+            "VpcId": "vpc-0s4"
+          }
+        ]
+      }
+    ],
+    "DescribeSecurityGroups": [
+      {
+        "SecurityGroups": []
+      }
+    ],
+    "DescribeSubnets": [
+      {
+        "Subnets": [
+          {
+            "OwnerId": "111111111111",
+            "SubnetId": "subnet-0s4a",
+            "VpcId": "vpc-0s4"
+          }
+        ]
+      }
+    ],
+    "DescribeTargetGroups": [
+      {
+        "TargetGroups": [
+          {
+            "LoadBalancerArns": [
+              "arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/app/shared-alb/0000000000000001"
+            ],
+            "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/orders-tg/0000000000000001",
+            "TargetGroupName": "orders-tg",
+            "TargetType": "instance",
+            "VpcId": "vpc-0s4"
+          },
+          {
+            "LoadBalancerArns": [
+              "arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/app/shared-alb/0000000000000001"
+            ],
+            "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/billing-tg/0000000000000001",
+            "TargetGroupName": "billing-tg",
+            "TargetType": "instance",
+            "VpcId": "vpc-0s4"
+          }
+        ]
+      }
+    ],
+    "DescribeTargetHealth": [
+      {
+        "TargetHealthDescriptions": [
+          {
+            "Target": {
+              "Id": "i-0s4orders1",
+              "Port": 80
+            },
+            "TargetHealth": {
+              "State": "healthy"
+            }
+          }
+        ],
+        "_TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/orders-tg/0000000000000001"
+      },
+      {
+        "TargetHealthDescriptions": [
+          {
+            "Target": {
+              "Id": "i-0s4billing1",
+              "Port": 80
+            },
+            "TargetHealth": {
+              "State": "healthy"
+            }
+          }
+        ],
+        "_TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/billing-tg/0000000000000001"
+      }
+    ],
+    "DescribeTransitGatewayAttachments": [
+      {
+        "TransitGatewayAttachments": []
+      }
+    ],
+    "DescribeVpcPeeringConnections": [
+      {
+        "VpcPeeringConnections": []
+      }
+    ],
+    "DescribeVpcs": [
+      {
+        "Vpcs": [
+          {
+            "IsDefault": false,
+            "OwnerId": "111111111111",
+            "VpcId": "vpc-0s4"
+          }
+        ]
+      }
+    ]
+  },
+  "region": "eu-west-1",
+  "snapshot_id": "s4-111111111111-eu-west-1-topology",
+  "source": "topology",
+  "status": "ok"
+}

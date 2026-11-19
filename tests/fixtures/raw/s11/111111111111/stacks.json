@@ -1,0 +1,62 @@
+{
+  "account_id": "111111111111",
+  "collected_at": "2026-01-15T12:00:00Z",
+  "notes": [],
+  "operations_called": [
+    "ListStacks",
+    "DescribeStackResources",
+    "DescribeStackResources"
+  ],
+  "payload": {
+    "DescribeStackResources": [
+      {
+        "StackResources": [
+          {
+            "LogicalResourceId": "Web",
+            "PhysicalResourceId": "i-0s11orders1",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceType": "AWS::EC2::Instance",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+            "StackName": "orders",
+            "Timestamp": "2025-12-01T10:05:00Z"
+          }
+        ]
+      },
+      {
+        "StackResources": [
+          {
+            "LogicalResourceId": "Web",
+            "PhysicalResourceId": "i-0s11billing1",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceType": "AWS::EC2::Instance",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/billing/00000000-0000-0000-0000-000000000002",
+            "StackName": "billing",
+            "Timestamp": "2025-12-01T10:05:00Z"
+          }
+        ]
+      }
+    ],
+    "ListStacks": [
+      {
+        "StackSummaries": [
+          {
+            "CreationTime": "2025-12-01T10:00:00Z",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+            "StackName": "orders",
+            "StackStatus": "CREATE_COMPLETE"
+          },
+          {
+            "CreationTime": "2025-12-01T10:00:00Z",
+            "StackId": "arn:aws:cloudformation:eu-west-1:111111111111:stack/billing/00000000-0000-0000-0000-000000000002",
+            "StackName": "billing",
+            "StackStatus": "CREATE_COMPLETE"
+          }
+        ]
+      }
+    ]
+  },
+  "region": "eu-west-1",
+  "snapshot_id": "s11-111111111111-eu-west-1-stacks",
+  "source": "stacks",
+  "status": "ok"
+}

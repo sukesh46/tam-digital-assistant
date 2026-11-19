@@ -1,0 +1,4 @@
+# SKELETON: ranges, not pins. Lockfile strategy undecided (see docs/DECISIONS.md).
+boto3>=1.34,<2          # AWS SDK; collectors only, behind a client factory
+pydantic>=2.6,<3        # domain models and validation
+networkx>=3.2,<4        # in-memory graph structure and neighbour queries

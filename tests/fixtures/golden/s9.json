@@ -1,0 +1,16 @@
+{
+  "scenario": "s9",
+  "description": "CloudTrail returns access denied; workloads are still built and the degradation is reported.",
+  "workloads": [
+    {
+      "name": "orders",
+      "members": [
+        "111111111111|eu-west-1|arn:aws:cloudformation:eu-west-1:111111111111:stack/orders/00000000-0000-0000-0000-000000000001",
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:instance/i-0s9orders1",
+        "111111111111|eu-west-1|arn:aws:rds:eu-west-1:111111111111:db:orders-db",
+        "111111111111|eu-west-1|arn:aws:ec2:eu-west-1:111111111111:subnet/subnet-0s9a"
+      ]
+    }
+  ],
+  "shared": []
+}

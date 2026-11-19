@@ -1,0 +1,6 @@
+{
+  "scenario": "s10",
+  "description": "Empty account: every source returns nothing.",
+  "workloads": [],
+  "shared": []
+}
