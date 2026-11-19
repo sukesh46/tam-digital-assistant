@@ -244,14 +244,23 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 def serve(port: int = 8765, external_id: str | None = None,
-          runs_dir: Path = Path("out/runs")) -> None:
+          runs_dir: Path = Path("out/runs"), replay_dir: Path | None = None) -> None:
     """Serve the page on localhost until stopped.
 
     Without ``external_id`` the server reads one account with the ambient credential (test pad).
     With it, runs may include up to 20 accounts through ``TamReadOnly`` (deployed mode).
+    ``replay_dir`` skips live AWS and replays a saved run's graph/cost snapshots (DNS workaround).
     """
-    planner = AssumedRolePlanner(external_id) if external_id else AmbientPlanner()
-    runs = Runs(planner, store=RunStore(runs_dir))
+    if replay_dir is not None:
+        from workload_graph.replay import ReplayPlanner, replay_cost_collect
+
+        planner: Any = ReplayPlanner(replay_dir)
+        runs = Runs(planner, store=RunStore(runs_dir),
+                    cost_collect=replay_cost_collect(replay_dir))
+        print(f"replay mode · {replay_dir}", flush=True)
+    else:
+        planner = AssumedRolePlanner(external_id) if external_id else AmbientPlanner()
+        runs = Runs(planner, store=RunStore(runs_dir))
     handler = type("Handler", (_Handler,), {"runs": runs})
     server = ThreadingHTTPServer((_HOST, port), handler)
     print(f"open http://{_HOST}:{port}", flush=True)

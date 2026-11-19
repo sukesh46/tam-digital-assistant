@@ -52,6 +52,8 @@ def _parser() -> argparse.ArgumentParser:
                     help="deployed mode: assume TamReadOnly in up to 20 member accounts")
     ui.add_argument("--runs-dir", type=Path, default=Path("out/runs"),
                     help="where runs and decisions are kept (gitignored)")
+    ui.add_argument("--replay", type=Path, default=None,
+                    help="offline: replay graph/cost snapshots from a saved run dir (no live AWS)")
     return parser
 
 
@@ -96,7 +98,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "ui":
         from workload_graph.ui_server import serve
 
-        serve(args.port, external_id=args.external_id, runs_dir=args.runs_dir)
+        serve(args.port, external_id=args.external_id, runs_dir=args.runs_dir,
+              replay_dir=args.replay)
         return 0
     try:
         if args.command == "build":
