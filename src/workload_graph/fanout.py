@@ -109,7 +109,8 @@ def _run_notes(accounts: tuple[str, ...], outcomes: dict[str, AccountOutcome]) -
 
 
 def _run(job: Job, accounts: tuple[str, ...], region: str, collect: Collector,
-         ruleset: Ruleset, workers: int, customer: str) -> BuildResult:
+         ruleset: Ruleset, workers: int, customer: str,
+         keep: Callable[[list[RawSnapshot]], None] | None) -> BuildResult:
     job.transition(JobState.RUNNING, "running", f"{len(accounts)} accounts")
     for account_id in accounts:
         job.emit("account_started", account_id)
@@ -136,7 +137,12 @@ def _run(job: Job, accounts: tuple[str, ...], region: str, collect: Collector,
                 record(future.result())
 
     snapshots = [s for account_id in accounts for s in outcomes[account_id].snapshots]
-    notes = tuple(_run_notes(accounts, outcomes))
+    notes = list(_run_notes(accounts, outcomes))
+    if keep is not None:
+        try:
+            keep(snapshots)
+        except OSError as exc:
+            notes.append(f"graph snapshots were not saved: {type(exc).__name__}")
 
     job.transition(JobState.BUILDING, "building")
     workspace = Workspace(
@@ -152,16 +158,18 @@ def _run(job: Job, accounts: tuple[str, ...], region: str, collect: Collector,
 
 def run_fanout(job: Job, account_ids: Iterable[str], region: str, collect: Collector,
                ruleset: Ruleset, workers: int = DEFAULT_WORKERS,
-               customer: str = "unnamed-customer") -> BuildResult | None:
+               customer: str = "unnamed-customer",
+               keep: Callable[[list[RawSnapshot]], None] | None = None) -> BuildResult | None:
     """Collect every account in parallel, then build once over the merged snapshots.
 
     Returns the result, or ``None`` if the joined build raised (the job is then ``FAILED``).
+    ``keep`` receives the merged snapshots before the build (the run store saves them for tags).
     Bad input raises ``ValueError`` before any work starts.
     """
     accounts = normalise_account_ids(account_ids)
     validate_region(region)
     try:
-        return _run(job, accounts, region, collect, ruleset, workers, customer)
+        return _run(job, accounts, region, collect, ruleset, workers, customer, keep)
     except Exception as exc:
         job.transition(JobState.FAILED, "failed", type(exc).__name__)
         return None

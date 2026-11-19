@@ -98,12 +98,42 @@
     font-size: 13px; line-height: 1.45; pointer-events: none;
   }
   #tip b { display: block; margin-bottom: 4px; }
+  #past-runs { margin-top: 36px; max-width: 760px; }
+  #past-runs:empty { display: none; }
+  #past-runs h3, #ledger h3 { font-weight: 500; letter-spacing: 0.12em; font-size: 13px; margin: 0 0 10px; color: #fff; }
+  .run-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.18); font-size: 13px; color: #d0d0d0; }
+  .run-row .buttons { display: flex; gap: 8px; }
+  .run-row button, #ledger button, #review-bar button { padding: 7px 16px; font-size: 13px; }
+  #review-bar .buttons { display: flex; gap: 10px; }
+  #ledger { display: none; margin-top: 8px; }
+  #ledger.show { display: block; }
+  .ledger-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  .ledger-head h2 { font-weight: 500; letter-spacing: 0.14em; font-size: 20px; margin: 0 0 6px; }
+  .ledger-head .scope { color: #cfcfcf; font-size: 13px; line-height: 1.6; }
+  .ledger-head .buttons { display: flex; gap: 10px; }
+  .figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: 24px 0 8px; }
+  .figure { border: 1px solid rgba(255,255,255,0.35); border-radius: 16px; padding: 14px 16px; background: rgba(0,0,0,0.6); }
+  .figure .label { font-size: 11px; letter-spacing: 0.1em; color: #cfcfcf; text-transform: uppercase; }
+  .figure .value { font-size: 22px; margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
+  .figure .note { font-size: 12px; color: #9e9e9e; }
+  .block { margin-top: 30px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; padding: 16px 18px; }
+  .block ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
+  .block h4 { font-weight: 500; font-size: 13px; letter-spacing: 0.06em; color: #cfcfcf; margin: 14px 0 6px; text-transform: uppercase; }
+  table.lt { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.lt th { text-align: left; font-weight: 500; color: #cfcfcf; letter-spacing: 0.04em; }
+  table.lt th, table.lt td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.16); vertical-align: top; }
+  table.lt td.num, table.lt th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.lt tr.finding { cursor: pointer; }
+  table.lt tr.finding:hover td { background: rgba(255,255,255,0.06); }
+  table.lt tr.evidence td { color: #bdbdbd; font-size: 12px; word-break: break-all; }
+  table.lt tr.flash td { background: rgba(255,255,255,0.14); }
+  .cite { color: #fff; text-decoration: underline; cursor: pointer; font-size: 12px; margin-left: 4px; }
 </style>
 </head>
 <body>
 <main>
   <h1>WORKLOAD GRAPH</h1>
-  <p class="lead">Add the member accounts to read, up to 20. One graph is drawn for each workload the run proposes. Approve or reject each one.</p>
+  <p class="lead">Add the member accounts to read, up to 20. One graph is drawn for each workload the run proposes. Approve or reject each one, then run the cost review to open the ledger.</p>
   <form id="ask">
     <div id="accounts" aria-label="Accounts to read"></div>
     <div class="intake">
@@ -113,11 +143,12 @@
     <label>Region<input name="region" value="ap-south-1" required></label>
     <button type="submit">Build</button>
   </form>
+  <section id="past-runs"></section>
   <datalist id="past"></datalist>
   <p id="error"></p>
   <section id="loading" aria-live="polite">
     <div>
-      <strong>READING THE ACCOUNTS</strong>
+      <strong id="loading-title">READING THE ACCOUNTS</strong>
       <div class="pulse"><i></i><i></i><i></i></div>
       <ol id="log"></ol>
     </div>
@@ -125,6 +156,7 @@
   <div id="review-bar"></div>
   <div id="graphs"></div>
   <nav id="pager"></nav>
+  <section id="ledger" aria-live="polite"></section>
 </main>
 <div id="tip"></div>
 <script>
@@ -140,6 +172,9 @@ const pastList = document.getElementById("past");
 const log = document.getElementById("log");
 const reviewBar = document.getElementById("review-bar");
 const pager = document.getElementById("pager");
+const ledger = document.getElementById("ledger");
+const pastRuns = document.getElementById("past-runs");
+const loadingTitle = document.getElementById("loading-title");
 const PAST_KEY = "wg.pastAccounts";
 const MAX_ACCOUNTS = 20;
 const PAGE_SIZE = 4;
@@ -444,10 +479,12 @@ function addRow(value) {
 addButton.onclick = () => addRow("");
 addRow("");
 refreshPastList();
+loadPastRuns();
 
 function showForm() {
   loading.classList.remove("show");
   form.style.display = "flex";
+  loadPastRuns();
 }
 function resetRun() {
   run = null;
@@ -455,6 +492,9 @@ function resetRun() {
   graphs.innerHTML = "";
   reviewBar.innerHTML = "";
   pager.innerHTML = "";
+  ledger.innerHTML = "";
+  ledger.classList.remove("show");
+  pastRuns.innerHTML = "";
   error.textContent = "";
 }
 function describe(event) {
@@ -469,6 +509,12 @@ function describe(event) {
     case "building": return "building the graph";
     case "awaiting_review": return "ready for review · " + event.detail;
     case "failed": return "the run failed · " + event.detail;
+    case "cost_started": return "cost review started · " + event.detail;
+    case "cost_source_started": return "  " + id + " · reading " + event.detail + "…";
+    case "cost_source_done": return "  " + id + " · " + event.detail.replace(":", " → ");
+    case "cost_account_failed": return "cost data for " + id + " could not be read · " + event.detail;
+    case "cost_done": return "cost review done · " + event.detail;
+    case "cost_failed": return "the cost review failed · " + event.detail;
     default: return "";
   }
 }
@@ -515,12 +561,30 @@ function renderBar() {
   const summary = document.createElement("span");
   summary.textContent = workloads.length + " workloads · " + approved + " approved · "
     + rejected + " rejected · " + pending + " pending";
+  const buttons = document.createElement("div");
+  buttons.className = "buttons";
+  const cost = document.createElement("button");
+  cost.type = "button";
+  cost.textContent = "Run cost review";
+  cost.disabled = approved === 0 || run.cost.state === "running";
+  cost.title = approved === 0 ? "Approve at least one workload first" : "Reads Cost Explorer and Cost Optimization Hub for the approved workloads";
+  cost.onclick = () => startCost();
+  buttons.append(cost);
+  if (run.cost.state === "done") {
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "ghost";
+    open.textContent = "Open ledger";
+    open.onclick = () => openLedger();
+    buttons.append(open);
+  }
   const again = document.createElement("button");
   again.type = "button";
   again.className = "ghost";
   again.textContent = "New run";
   again.onclick = () => { resetRun(); showForm(); };
-  reviewBar.append(summary, again);
+  buttons.append(again);
+  reviewBar.append(summary, buttons);
 }
 function renderPager(pages) {
   pager.innerHTML = "";
@@ -581,6 +645,7 @@ async function follow(current) {
     if (run !== current) return;
     showEvents(body.events);
     current.decisions = body.decisions;
+    current.cost = body.cost || { state: "none", detail: "" };
     if (body.result && !current.resultShown) {
       current.resultShown = true;
       current.workloads = body.result.workloads || [];
@@ -591,9 +656,333 @@ async function follow(current) {
         throw new Error("the run failed" + (failure ? " · " + failure.detail : ""));
       }
       loading.classList.remove("show");
+      if (current.wantLedger) {
+        current.wantLedger = false;
+        if (current.cost.state === "done") { await openLedger(); return; }
+        error.textContent = "The cost review failed · " + current.cost.detail;
+      }
       renderPage();
       return;
     }
+  }
+}
+
+async function startCost() {
+  const current = run;
+  error.textContent = "";
+  const response = await fetch("/api/jobs/" + current.jobId + "/cost", { method: "POST" });
+  const body = await response.json();
+  if (!response.ok) { error.textContent = body.error || "the cost review could not start"; return; }
+  current.cost = body.cost;
+  current.wantLedger = true;
+  graphs.innerHTML = "";
+  pager.innerHTML = "";
+  reviewBar.innerHTML = "";
+  log.innerHTML = "";
+  loadingTitle.textContent = "READING COST DATA";
+  loading.classList.add("show");
+  try { await follow(current); } catch (err) { loading.classList.remove("show"); error.textContent = err.message; renderPage(); }
+}
+
+const FIGURES = {
+  latest_month_total: "Latest month", prior_month_total: "Prior month",
+  month_over_month_change: "Change", month_over_month_pct: "Change %",
+  deduplicated_savings_total: "Savings a month (deduplicated)", quick_win_sum: "Quick wins (sum)",
+  unattributed_share: "Unattributed share",
+};
+const SECTIONS = { summary: "Summary", account_spend: "Account spend", workloads: "Workloads",
+  savings: "Savings", data_coverage: "Data coverage", asks: "Asks" };
+function money(value, unit) {
+  if (value === null || value === undefined) return "n/a";
+  let text = String(value);
+  const negative = text.startsWith("-");
+  if (negative) text = text.slice(1);
+  const [whole, fraction = ""] = text.split(".");
+  const padded = (fraction + "000").slice(0, 3);
+  let cents = BigInt(whole + padded.slice(0, 2));
+  if (Number(padded[2]) >= 5) cents += 1n;
+  const digits = cents.toString().padStart(3, "0");
+  const grouped = digits.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return (negative && cents !== 0n ? "-" : "") + (unit ? unit + " " : "") + grouped + "." + digits.slice(-2);
+}
+function pct(value) {
+  if (value === null || value === undefined) return "n/a";
+  return (Number(value) * 100).toFixed(1) + "%";
+}
+function period(p) { return p ? p.start + " → " + p.end : ""; }
+function el(tag, text, cls) {
+  const node = document.createElement(tag);
+  if (text !== undefined && text !== null) node.textContent = text;
+  if (cls) node.className = cls;
+  return node;
+}
+function block(title) {
+  const section = el("div", null, "block");
+  section.append(el("h3", title));
+  return section;
+}
+function table(headers, numeric) {
+  const t = el("table", null, "lt");
+  const head = el("tr");
+  headers.forEach((h, i) => head.append(el("th", h, numeric.includes(i) ? "num" : "")));
+  t.append(head);
+  return t;
+}
+function row(t, cells, numeric, cls) {
+  const r = el("tr", null, cls || "");
+  cells.forEach((c, i) => {
+    const td = el("td", null, numeric.includes(i) ? "num" : "");
+    if (c instanceof Node) td.append(c); else td.textContent = c === null || c === undefined ? "" : c;
+    r.append(td);
+  });
+  t.append(r);
+  return r;
+}
+function cites(report, ids) {
+  const span = el("span");
+  const byId = report._byId;
+  (ids || []).forEach((id) => {
+    const f = byId[id];
+    const link = el("a", f ? f.display_id : id, "cite");
+    link.onclick = () => focusFinding(id);
+    span.append(link);
+  });
+  return span;
+}
+function focusFinding(id) {
+  const target = document.getElementById("finding-" + id);
+  if (!target) return;
+  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  target.classList.add("flash");
+  setTimeout(() => target.classList.remove("flash"), 1400);
+  if (!target.dataset.open) target.click();
+}
+
+async function openLedger() {
+  const current = run;
+  const response = await fetch("/api/jobs/" + current.jobId + "/report");
+  const report = await response.json();
+  if (!response.ok) { error.textContent = report.error || "no report for this run"; return; }
+  if (run !== current) return;
+  renderLedger(report);
+}
+function closeLedger() {
+  ledger.classList.remove("show");
+  ledger.innerHTML = "";
+  renderPage();
+}
+function renderLedger(report) {
+  report._byId = {};
+  report.findings.forEach((f) => { report._byId[f.finding_id] = f; });
+  graphs.innerHTML = "";
+  pager.innerHTML = "";
+  reviewBar.innerHTML = "";
+  error.textContent = "";
+  ledger.innerHTML = "";
+
+  const head = el("div", null, "ledger-head");
+  const left = el("div");
+  left.append(el("h2", "LEDGER"));
+  const months = report.scope.months;
+  const scope = el("div", null, "scope");
+  scope.innerHTML = esc(report.scope.accounts.join(", ")) + "<br>"
+    + esc(months.length ? months[0].split("..")[0] + " → " + months[months.length - 1].split("..")[1] : "")
+    + " · " + esc(report.scope.currency || "no single currency") + " · " + esc(report.scope.metric)
+    + " · as of " + esc(report.generated_from.as_of);
+  left.append(scope);
+  const buttons = el("div", null, "buttons");
+  const back = el("button", "Back to review", "ghost");
+  back.type = "button";
+  back.onclick = closeLedger;
+  const download = el("button", "Download JSON", "ghost");
+  download.type = "button";
+  download.onclick = () => {
+    const copy = Object.assign({}, report);
+    delete copy._byId;
+    const blob = new Blob([JSON.stringify(copy, null, 2) + "\n"], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "ledger-" + run.jobId.slice(0, 8) + ".json";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+  buttons.append(back, download);
+  head.append(left, buttons);
+  ledger.append(head);
+
+  const figures = el("div", null, "figures");
+  report.summary.forEach((f) => {
+    const card = el("div", null, "figure");
+    card.append(el("div", FIGURES[f.name] || f.name, "label"));
+    const value = f.name.endsWith("_pct") || f.name.endsWith("_share") ? pct(f.value) : money(f.value, f.unit);
+    card.append(el("div", value, "value"));
+    const note = el("div", f.note || "", "note");
+    note.append(cites(report, f.finding_ids));
+    card.append(note);
+    figures.append(card);
+  });
+  ledger.append(figures);
+
+  const narrative = block("NARRATIVE");
+  report.narrative.sections.forEach((section) => {
+    if (!section.sentences.length) return;
+    narrative.append(el("h4", SECTIONS[section.name] || section.name));
+    const list = el("ul");
+    section.sentences.forEach((s) => {
+      const item = el("li", s.text);
+      item.append(cites(report, s.finding_ids));
+      list.append(item);
+    });
+    narrative.append(list);
+  });
+  ledger.append(narrative);
+
+  if (report.workloads.length) {
+    const workloads = block("WORKLOADS");
+    const t = table(["Workload", "Confidence", "Method", "Spend", "Period", "Savings a month (sum of items)", "Findings"], [3, 5]);
+    report.workloads.forEach((w) => {
+      const primary = w.spend.find((s) => s.primary) || { method: "none" };
+      row(t, [w.name_hint, w.confidence, primary.method,
+        primary.amount === null || primary.amount === undefined ? "n/a" : money(primary.amount, primary.unit),
+        period(primary.period), w.savings_sum_of_resource_recommendations === null ? "n/a" : money(w.savings_sum_of_resource_recommendations, report.scope.currency),
+        cites(report, w.findings)], [3, 5]);
+    });
+    workloads.append(t);
+    ledger.append(workloads);
+  }
+
+  if (report.buckets.length) {
+    const buckets = block("WHERE THE WINDOW'S SPEND WENT");
+    report.buckets.forEach((b) => {
+      buckets.append(el("h4", b.account_id + " · " + period(b.period) + " · total " + money(b.total, b.unit)));
+      const t = table(["Bucket", "Amount", "Share"], [1, 2]);
+      Object.entries(b.rows).sort((x, y) => Number(y[1]) - Number(x[1])).forEach(([name, amount]) => {
+        const share = Number(b.total) ? pct(String(Number(amount) / Number(b.total))) : "n/a";
+        row(t, [name.replace("workload:", "workload "), money(amount, b.unit), share], [1, 2]);
+      });
+      buckets.append(t);
+    });
+    ledger.append(buckets);
+  }
+
+  const findings = block("FINDINGS");
+  const ft = table(["ID", "Kind", "Rule", "Account", "Workload", "Amount", "Confidence", "Tier", "Flags"], [5]);
+  const names = {};
+  report.workloads.forEach((w) => { names[w.workload_id] = w.name_hint; });
+  report.findings.forEach((f) => {
+    const amount = f.values.amount === undefined || f.values.amount === null ? "" : money(f.values.amount, f.values.unit);
+    const r = row(ft, [f.display_id, f.kind.replace(/_/g, " "), f.rule_id.replace(/_/g, " "), f.account_id || "all",
+      f.workload_id ? (names[f.workload_id] || f.workload_id) : "", amount, f.confidence, f.tier || "", f.flags.join(", ")], [5], "finding");
+    r.id = "finding-" + f.finding_id;
+    r.onclick = () => {
+      if (r.dataset.open) {
+        let next = r.nextSibling;
+        while (next && next.classList.contains("evidence")) { const gone = next; next = next.nextSibling; gone.remove(); }
+        delete r.dataset.open;
+        return;
+      }
+      r.dataset.open = "1";
+      let anchor = r;
+      const values = Object.entries(f.values).filter(([k]) => k !== "unit" && k !== "amount")
+        .map(([k, v]) => k + " " + (v === null ? "n/a" : v)).join(" · ");
+      const valuesRow = el("tr", null, "evidence");
+      const vcell = el("td", values);
+      vcell.colSpan = 9;
+      valuesRow.append(vcell);
+      anchor.after(valuesRow);
+      anchor = valuesRow;
+      (report.evidence_index[f.finding_id] || []).forEach((ev) => {
+        const er = el("tr", null, "evidence");
+        const cell = el("td", ev.source + " · " + ev.snapshot_id + " " + ev.pointer + " · " + ev.detail);
+        cell.colSpan = 9;
+        er.append(cell);
+        anchor.after(er);
+        anchor = er;
+      });
+    };
+  });
+  findings.append(ft);
+  ledger.append(findings);
+
+  if (report.customer_asks.length || report.talking_points.length) {
+    const asks = block("ASKS AND TALKING POINTS");
+    if (report.customer_asks.length) {
+      asks.append(el("h4", "Asks for the customer"));
+      const list = el("ul");
+      report.customer_asks.forEach((a) => { const item = el("li", a.text); item.append(cites(report, a.finding_ids)); list.append(item); });
+      asks.append(list);
+    }
+    if (report.talking_points.length) {
+      asks.append(el("h4", "Talking points"));
+      const list = el("ul");
+      report.talking_points.forEach((p) => { const item = el("li", p.text); item.append(cites(report, p.finding_ids)); list.append(item); });
+      asks.append(list);
+    }
+    ledger.append(asks);
+  }
+
+  const coverage = block("COVERAGE");
+  const ct = table(["Account", "Source", "Status"], []);
+  report.coverage.entries.forEach((e) => row(ct, [e.account_id, e.source.replace(/_/g, " "), e.status.replace("_", " ")], []));
+  coverage.append(ct);
+  coverage.append(el("h4", "Tag cost data " + (report.coverage.tag_cost_visible ? "visible" : "not visible")
+    + " · resource-level data " + (report.coverage.resource_level_visible ? "visible" : "not visible")));
+  ledger.append(coverage);
+
+  if (report.notes.length) {
+    const notes = block("NOTES");
+    const list = el("ul");
+    report.notes.forEach((n) => list.append(el("li", n)));
+    notes.append(list);
+    ledger.append(notes);
+  }
+  ledger.classList.add("show");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function loadPastRuns() {
+  try {
+    const response = await fetch("/api/runs");
+    if (!response.ok) return;
+    const body = await response.json();
+    pastRuns.innerHTML = "";
+    if (!body.runs.length || run) return;
+    pastRuns.append(el("h3", "PAST RUNS"));
+    body.runs.slice(0, 8).forEach((r) => {
+      const line = el("div", null, "run-row");
+      const when = new Date(r.created_at).toLocaleString();
+      const cost = r.cost_state === "done" ? " · ledger ready" : r.cost_state === "failed" ? " · cost review failed" : "";
+      line.append(el("span", when + " · " + r.accounts.join(", ") + " · " + r.state.replace("_", " ")
+        + " · " + r.approved + "/" + r.workloads + " approved" + cost));
+      const buttons = el("div", null, "buttons");
+      const open = el("button", "Open", "ghost");
+      open.type = "button";
+      open.onclick = () => resume(r.job_id, false);
+      buttons.append(open);
+      if (r.cost_state === "done") {
+        const led = el("button", "Ledger", "ghost");
+        led.type = "button";
+        led.onclick = () => resume(r.job_id, true);
+        buttons.append(led);
+      }
+      line.append(buttons);
+      pastRuns.append(line);
+    });
+  } catch (err) { /* the list is optional */ }
+}
+async function resume(jobId, toLedger) {
+  resetRun();
+  form.style.display = "none";
+  loadingTitle.textContent = "OPENING THE RUN";
+  loading.classList.add("show");
+  run = { jobId, lastSeq: 0, workloads: [], decisions: {}, page: 0, resultShown: false,
+          cost: { state: "none", detail: "" }, wantLedger: toLedger };
+  try {
+    await follow(run);
+  } catch (err) {
+    resetRun();
+    error.textContent = err.message;
+    showForm();
   }
 }
 
@@ -613,6 +1002,7 @@ form.onsubmit = async (event) => {
   const region = form.elements.region.value.trim();
   resetRun();
   form.style.display = "none";
+  loadingTitle.textContent = "READING THE ACCOUNTS";
   loading.classList.add("show");
   try {
     const response = await fetch("/api/jobs", {
@@ -623,7 +1013,8 @@ form.onsubmit = async (event) => {
     const body = await response.json();
     if (!response.ok) throw new Error(body.error || "the run could not start");
     rememberAccounts(accounts);
-    run = { jobId: body.job_id, lastSeq: 0, workloads: [], decisions: {}, page: 0, resultShown: false };
+    run = { jobId: body.job_id, lastSeq: 0, workloads: [], decisions: {}, page: 0, resultShown: false,
+            cost: { state: "none", detail: "" }, wantLedger: false };
     await follow(run);
   } catch (err) {
     resetRun();

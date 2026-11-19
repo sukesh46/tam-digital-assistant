@@ -4,13 +4,16 @@ Status: real
 Purpose: keep runs, their build result, the event log and the TAM's decisions across restarts,
     so a review can be finished later and the cost review can read approved runs.
 Inputs: ``Job`` objects; a root directory (``out/runs`` by default, gitignored).
-Outputs: ``RunStore`` with ``save``, ``load_all`` and ``run_dir``.
+Outputs: ``RunStore`` with ``save``, ``load_all``, ``run_dir``, ``save_snapshots``,
+    ``snapshot_dir``, ``save_report`` and ``load_report``.
 Planned dependencies: jobs, models.
 Notes:
     - ``out/`` is in ``.gitignore``. Account ids written here never enter the repository.
     - Writes go to a temporary file in the same directory and are then renamed, so a reader
       never sees a half-written file.
     - An unreadable run file is skipped, never fatal.
+    - Layout: ``run.json``, ``graph/<account>/<source>.json`` (kept for tags),
+      ``cost/<account>/<source>.json`` and ``report.json``.
 """
 
 from __future__ import annotations
@@ -20,17 +23,21 @@ import os
 import re
 import tempfile
 import threading
+from collections.abc import Iterable
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from pydantic import ValidationError
 
+from workload_graph.cost.snapshots import dump_cost_snapshot
 from workload_graph.jobs import Job, JobEvent, JobState
-from workload_graph.models import BuildResult
+from workload_graph.models import COST_SOURCES, BuildResult, RawSnapshot
 
 SCHEMA_VERSION = "1"
 RUN_FILE = "run.json"
+REPORT_FILE = "report.json"
+SNAPSHOT_KINDS = ("graph", "cost")
 _RUN_ID = re.compile(r"^[0-9a-f]{32}$")
 
 
@@ -83,11 +90,43 @@ class RunStore:
             "state": job.state.value,
             "events": [_event_dict(e) for e in job.events_after(0)],
             "decisions": job.decisions,
+            "cost_state": job.cost_state,
+            "cost_detail": job.cost_detail,
             "result": None if result is None else json.loads(result.to_json()),
         }
         text = json.dumps(body, sort_keys=True, indent=2) + "\n"
         with self._lock:
             write_atomic(self.run_dir(job.job_id) / RUN_FILE, text)
+
+    def save_snapshots(self, job_id: str, kind: str, snapshots: Iterable[RawSnapshot]) -> None:
+        """Write ``<run>/<kind>/<account>/<source>.json``. Cost snapshots keep exact decimals."""
+        if kind not in SNAPSHOT_KINDS:
+            raise ValueError("unknown snapshot kind")
+        for snapshot in snapshots:
+            text = dump_cost_snapshot(snapshot) if snapshot.source in COST_SOURCES else \
+                snapshot.model_dump_json(indent=2) + "\n"
+            path = self.run_dir(job_id) / kind / snapshot.account_id / f"{snapshot.source}.json"
+            with self._lock:
+                write_atomic(path, text)
+
+    def snapshot_dir(self, job_id: str, kind: str) -> Path:
+        """Where ``save_snapshots`` writes one kind."""
+        if kind not in SNAPSHOT_KINDS:
+            raise ValueError("unknown snapshot kind")
+        return self.run_dir(job_id) / kind
+
+    def save_report(self, job_id: str, text: str) -> None:
+        """Write the run's findings report."""
+        with self._lock:
+            write_atomic(self.run_dir(job_id) / REPORT_FILE, text)
+
+    def load_report(self, job_id: str) -> str | None:
+        """The run's findings report as text, or ``None``."""
+        path = self.run_dir(job_id) / REPORT_FILE
+        try:
+            return path.read_text(encoding="utf-8")
+        except OSError:
+            return None
 
     def load_all(self) -> list[Job]:
         """Every readable run under the root, oldest first."""
@@ -115,6 +154,8 @@ class RunStore:
                 events=[_event(e) for e in data.get("events", [])],
                 result=None if result is None else BuildResult.model_validate(result),
                 decisions={str(k): str(v) for k, v in dict(data.get("decisions", {})).items()},
+                cost_state=str(data.get("cost_state", "none")),
+                cost_detail=str(data.get("cost_detail", "")),
             )
         except (OSError, UnicodeError, ValueError, KeyError, TypeError, ValidationError):
             return None

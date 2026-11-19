@@ -12,6 +12,7 @@ Notes:
     - Runs are held in memory and, when a ``RunStore`` is given, saved under ``out/runs/`` at
       start, when they settle and on every decision. A new registry loads them back.
     - ``threaded=False`` runs the job inline. Tests use it so they stay deterministic.
+    - ``cost_review`` runs after approval with a client factory from the same planner, in us-east-1.
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ from typing import Any, Protocol
 
 import boto3
 
+from workload_graph.costreview import CostCollect, collect_cost, run_cost_review
 from workload_graph.credentials import (
     CLIENT_CONFIG,
     TAM_ROLE_NAME,
@@ -41,8 +43,11 @@ from workload_graph.fanout import (
     run_fanout,
 )
 from workload_graph.jobs import Job
+from workload_graph.models import RawSnapshot
 from workload_graph.ruleset import Ruleset
 from workload_graph.runstore import RunStore
+
+COST_REGION = "us-east-1"  # ASSUMPTION: the cost APIs' endpoint (cost assumption 10).
 
 
 def _sts_for(region: str) -> Any:
@@ -54,6 +59,8 @@ class RunPlanner(Protocol):
     """Decides how the accounts of a run are read. Refuses with ``ValueError`` if it cannot."""
 
     def prepare(self, accounts: tuple[str, ...], region: str) -> Collector: ...
+
+    def cost_factory(self, accounts: tuple[str, ...]) -> ClientFactory: ...
 
 
 class AmbientPlanner:
@@ -68,6 +75,12 @@ class AmbientPlanner:
         credentials = AmbientCredentials(accounts, region, sts_factory=self._sts_factory)
         credentials.verify()
         return collector_for(ambient_client, region, self._ruleset, datetime.now(UTC))
+
+    def cost_factory(self, accounts: tuple[str, ...]) -> ClientFactory:
+        """A cost API client factory, once the credential is checked against the account."""
+        credentials = AmbientCredentials(accounts, COST_REGION, sts_factory=self._sts_factory)
+        credentials.verify()
+        return ambient_client
 
 
 class AssumedRolePlanner:
@@ -92,14 +105,25 @@ class AssumedRolePlanner:
         factory: ClientFactory = credentials.client_factory()
         return collector_for(factory, region, self._ruleset, datetime.now(UTC))
 
+    def cost_factory(self, accounts: tuple[str, ...]) -> ClientFactory:
+        """A client factory for the cost APIs through the same role (needs the cost actions)."""
+        credentials = AssumedRoleCredentials(
+            accounts, (COST_REGION,), self._sts_factory(COST_REGION),
+            external_id=self._external_id, purpose=f"cost-{uuid.uuid4().hex[:12]}",
+        )
+        return credentials.client_factory()
+
 
 class Runs:
     """In-memory registry of runs. Each run is one ``Job``."""
 
     def __init__(self, planner: RunPlanner, *, threaded: bool = True,
                  workers: int = DEFAULT_WORKERS, ruleset: Ruleset | None = None,
-                 store: RunStore | None = None) -> None:
+                 store: RunStore | None = None, cost_collect: CostCollect = collect_cost,
+                 clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> None:
         self._planner = planner
+        self._cost_collect = cost_collect
+        self._clock = clock
         self._threaded = threaded
         self._workers = workers
         self._ruleset = ruleset or Ruleset()
@@ -120,9 +144,16 @@ class Runs:
             self._jobs[job.job_id] = job
         self._save(job)
 
+        store = self._store
+
+        def keep(snapshots: list[RawSnapshot]) -> None:
+            if store is not None:
+                store.save_snapshots(job.job_id, "graph", snapshots)
+
         def work() -> None:
             try:
-                run_fanout(job, accounts, region, collect, self._ruleset, workers=self._workers)
+                run_fanout(job, accounts, region, collect, self._ruleset, workers=self._workers,
+                           keep=keep)
             finally:
                 self._save(job)
 
@@ -145,6 +176,38 @@ class Runs:
         self._save(job)
         return job
 
+    def cost_review(self, job_id: str) -> Job:
+        """Start the cost review of a reviewed run. Refusals raise before anything starts."""
+        job = self.get(job_id)
+        if job is None:
+            raise KeyError(job_id)
+        if not job.approved():
+            raise ValueError("approve at least one workload first")
+        factory = self._planner.cost_factory(job.accounts)
+        job.begin_cost()
+        self._save(job)
+        moment = self._clock()
+
+        def work() -> None:
+            try:
+                run_cost_review(job, factory, self._store, as_of=moment.date(),
+                                collected_at=moment, workload_ruleset=self._ruleset,
+                                collect=self._cost_collect)
+            finally:
+                self._save(job)
+
+        if self._threaded:
+            threading.Thread(target=work, name=f"cost-{job_id[:8]}", daemon=True).start()
+        else:
+            work()
+        return job
+
+    def report(self, job_id: str) -> str | None:
+        """The saved findings report of a run, as JSON text."""
+        if self._store is None or self.get(job_id) is None:
+            return None
+        return self._store.load_report(job_id)
+
     def list(self) -> list[dict[str, Any]]:
         """One summary per run, newest first."""
         with self._lock:
@@ -163,6 +226,7 @@ class Runs:
                 "workloads": 0 if result is None else len(result.workloads),
                 "approved": sum(1 for d in decisions.values() if d == "approve"),
                 "rejected": sum(1 for d in decisions.values() if d == "reject"),
+                "cost_state": job.cost_state,
             })
         return summaries
 

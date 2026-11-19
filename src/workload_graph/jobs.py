@@ -11,7 +11,10 @@ Notes:
       a dropped connection loses nothing.
     - Event details carry codes only (for example ``AccessDenied``), never exception messages,
       because messages can contain account ids or ARNs.
-    - ``AWAITING_REVIEW`` and ``FAILED`` are settled. A stream ends when the job settles.
+    - ``AWAITING_REVIEW`` and ``FAILED`` are settled. A stream ends when the job settles and no
+      cost review is running (``is_quiet``).
+    - The cost review has its own state (none, running, done, failed) so it never moves the job
+      out of ``AWAITING_REVIEW``: decisions stay readable while it runs, but not editable.
     - Persistence lives in ``runstore.py``. ``restore`` rebuilds a job from what was saved.
 """
 
@@ -36,6 +39,7 @@ class JobState(StrEnum):
 
 _SETTLED = frozenset({JobState.AWAITING_REVIEW, JobState.FAILED})
 DECISIONS = ("approve", "reject")
+COST_STATES = ("none", "running", "done", "failed")
 
 
 @dataclass(frozen=True)
@@ -66,20 +70,27 @@ class Job:
         self._state = JobState.QUEUED
         self._result: BuildResult | None = None
         self._decisions: dict[str, str] = {}
+        self._cost_state = "none"
+        self._cost_detail = ""
 
     @classmethod
     def restore(cls, job_id: str, accounts: tuple[str, ...], region: str, created_at: datetime,
                 state: JobState, events: list[JobEvent], result: BuildResult | None,
-                decisions: dict[str, str]) -> Job:
-        """Rebuild a saved job. A job saved before it settled comes back ``FAILED``."""
+                decisions: dict[str, str], cost_state: str = "none",
+                cost_detail: str = "") -> Job:
+        """Rebuild a saved job. A job or cost review saved mid-way comes back failed."""
         job = cls(job_id, accounts, region=region)
         job.created_at = created_at
         job._events = list(events)
         job._result = result
         job._decisions = dict(decisions)
         job._state = state
+        job._cost_state = cost_state if cost_state in COST_STATES else "failed"
+        job._cost_detail = cost_detail
         if state not in _SETTLED:
             job.transition(JobState.FAILED, "failed", "interrupted")
+        if job._cost_state == "running":
+            job.finish_cost("failed", "interrupted")
         return job
 
     @property
@@ -95,6 +106,49 @@ class Job:
     @property
     def is_settled(self) -> bool:
         return self.state in _SETTLED
+
+    @property
+    def is_quiet(self) -> bool:
+        """Settled, and no cost review running: a reader can stop polling."""
+        with self._cond:
+            return self._state in _SETTLED and self._cost_state != "running"
+
+    @property
+    def cost_state(self) -> str:
+        with self._cond:
+            return self._cost_state
+
+    @property
+    def cost_detail(self) -> str:
+        with self._cond:
+            return self._cost_detail
+
+    def approved(self) -> set[str]:
+        """Workload ids the TAM approved."""
+        with self._cond:
+            return {w for w, d in self._decisions.items() if d == "approve"}
+
+    def begin_cost(self) -> None:
+        """Start the cost review. Only after the build, with at least one approved workload."""
+        with self._cond:
+            if self._state is not JobState.AWAITING_REVIEW or self._result is None:
+                raise ValueError("the build has not finished")
+            if not any(d == "approve" for d in self._decisions.values()):
+                raise ValueError("approve at least one workload first")
+            if self._cost_state == "running":
+                raise ValueError("a cost review is already running")
+            self._cost_state = "running"
+            self._cost_detail = ""
+        self.emit("cost_started", None, f"{len(self.approved())} approved")
+
+    def finish_cost(self, state: str, detail: str = "") -> None:
+        """End the cost review as ``done`` or ``failed``. ``detail`` is a code or a count."""
+        if state not in ("done", "failed"):
+            raise ValueError("cost review ends as done or failed")
+        with self._cond:
+            self._cost_state = state
+            self._cost_detail = detail
+        self.emit(f"cost_{state}", None, detail)
 
     def emit(self, kind: str, account_id: str | None = None, detail: str = "") -> JobEvent:
         """Append one event and wake any reader waiting on the log."""
@@ -122,11 +176,13 @@ class Job:
     def decide(self, workload_id: str, decision: str) -> None:
         """Record ``approve`` or ``reject`` for one workload. Only after the build has settled.
 
-        Approving or rejecting is the TAM's gate. Cost review runs only after approval (later step).
+        Approving or rejecting is the TAM's gate. Cost review runs only on approved workloads.
         """
         with self._cond:
             if self._state is not JobState.AWAITING_REVIEW or self._result is None:
                 raise ValueError("no workloads are awaiting review")
+            if self._cost_state == "running":
+                raise ValueError("a cost review is running")
             if decision not in DECISIONS:
                 raise ValueError("decision must be approve or reject")
             known = {workload.workload_id for workload in self._result.workloads}
@@ -144,7 +200,8 @@ class Job:
         """Block until there is an event after ``after``, the job settles, or time runs out."""
         with self._cond:
             self._cond.wait_for(
-                lambda: len(self._events) > after or self._state in _SETTLED,
+                lambda: len(self._events) > after
+                or (self._state in _SETTLED and self._cost_state != "running"),
                 timeout=timeout,
             )
             return self._events[after:]

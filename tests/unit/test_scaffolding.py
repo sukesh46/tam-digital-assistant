@@ -93,6 +93,7 @@ MODULES = [
     "workload_graph.report.guardrail",
     "workload_graph.report.assemble",
     "workload_graph.pipeline_findings",
+    "workload_graph.costreview",
 ]
 
 

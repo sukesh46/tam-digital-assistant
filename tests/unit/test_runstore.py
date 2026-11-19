@@ -87,7 +87,9 @@ def test_an_unreadable_run_file_is_skipped(tmp_path: Path) -> None:
 
 def test_the_write_is_atomic_and_leaves_no_temporary_file(tmp_path: Path) -> None:
     job = _runs(tmp_path).start([ACCT_A], REGION)
-    assert sorted(p.name for p in (tmp_path / job.job_id).iterdir()) == ["run.json"]
+    folder = tmp_path / job.job_id
+    assert sorted(p.name for p in folder.iterdir()) == ["graph", "run.json"]
+    assert not [p for p in folder.rglob("*") if p.name.startswith(".tmp-")]
 
 
 def test_runs_are_listed_newest_first_with_a_summary(tmp_path: Path) -> None:

@@ -5,14 +5,16 @@ Purpose: serve the black-and-white page, start runs, stream their progress by lo
     record the TAM's approve or reject decision per workload.
 Inputs: HTTP on 127.0.0.1. Account ids come from the request and are never written to the project.
 Outputs: the page; JSON for ``POST /api/jobs``, ``GET /api/jobs/<id>``,
-    ``POST /api/jobs/<id>/review``, ``GET /api/runs``; and the legacy ``POST /api/build``.
+    ``POST /api/jobs/<id>/review``, ``POST /api/jobs/<id>/cost``, ``GET /api/jobs/<id>/report``,
+    ``GET /api/runs``; and the legacy ``POST /api/build``.
 Planned dependencies: runs, jobs, live.
 Notes:
     - The route functions return ``(status, body)`` and do not touch the socket, so tests call them
       directly.
     - Event details are codes only. Request logging is off so account ids are not written out.
     - Long poll: ``GET /api/jobs/<id>?after=N&wait=S`` returns events numbered above N as soon as
-      any exist, or after S seconds (capped at 25). A reader stops when ``settled`` is true.
+      any exist, or after S seconds (capped at 25). A reader stops when ``settled`` is true,
+      which also waits for a running cost review.
 """
 
 from __future__ import annotations
@@ -35,7 +37,7 @@ _PAGE = Path(__file__).resolve().parent / "ui" / "index.html"
 _HOST = "127.0.0.1"
 _MAX_BODY = 4096
 _MAX_WAIT = 25.0
-_JOB_PATH = re.compile(r"^/api/jobs/([0-9a-f]{32})(/review)?$")
+_JOB_PATH = re.compile(r"^/api/jobs/([0-9a-f]{32})(/review|/cost|/report)?$")
 
 Reply = tuple[int, dict[str, Any]]
 
@@ -74,9 +76,10 @@ def _job_view(job: Job, events: list[Any]) -> dict[str, Any]:
         "job_id": job.job_id,
         "accounts": list(job.accounts),
         "state": job.state.value,
-        "settled": job.is_settled,
+        "settled": job.is_quiet,
         "events": [_event_view(event) for event in events],
         "decisions": job.decisions,
+        "cost": {"state": job.cost_state, "detail": job.cost_detail},
     }
     result = job.result
     if result is not None:
@@ -109,6 +112,31 @@ def review_workload(runs: Runs, job_id: str, payload: object) -> Reply:
     return 200, {"decisions": job.decisions}
 
 
+def start_cost_review(runs: Runs, job_id: str) -> Reply:
+    """Start the cost review of a reviewed run. Refusals are 400; AWS errors 502 with a code."""
+    try:
+        job = runs.cost_review(job_id)
+    except KeyError:
+        return 404, {"error": "no such run"}
+    except ValueError as exc:
+        return 400, {"error": str(exc)}
+    except ClientError as exc:
+        return _client_error(exc)
+    except BotoCoreError:
+        return 502, {"error": "the cost data could not be read"}
+    return 202, {"job_id": job.job_id, "cost": {"state": job.cost_state,
+                                               "detail": job.cost_detail}}
+
+
+def get_report(runs: Runs, job_id: str) -> Reply:
+    """The run's findings report, once the cost review has finished."""
+    text = runs.report(job_id)
+    if text is None:
+        return 404, {"error": "no report for this run"}
+    report: dict[str, Any] = json.loads(text)
+    return 200, report
+
+
 def list_runs(runs: Runs) -> Reply:
     """Summaries of every known run, newest first."""
     return 200, {"runs": runs.list()}
@@ -134,8 +162,11 @@ class _Handler(BaseHTTPRequestHandler):
             self._json(*list_runs(self.runs))
             return
         match = _JOB_PATH.match(parts.path)
-        if match is None or match.group(2) or self.runs is None:
+        if match is None or self.runs is None or match.group(2) in ("/review", "/cost"):
             self.send_error(404)
+            return
+        if match.group(2) == "/report":
+            self._json(*get_report(self.runs, match.group(1)))
             return
         query = parse_qs(parts.query)
         try:
@@ -161,8 +192,11 @@ class _Handler(BaseHTTPRequestHandler):
             self._json(*create_job(self.runs, payload))
             return
         match = _JOB_PATH.match(path)
-        if match is None or not match.group(2):
+        if match is None or match.group(2) not in ("/review", "/cost"):
             self.send_error(404)
+            return
+        if match.group(2) == "/cost":
+            self._json(*start_cost_review(self.runs, match.group(1)))
             return
         payload = self._read_json()
         if payload is None:
