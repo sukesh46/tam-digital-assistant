@@ -847,7 +847,10 @@ function renderLedger(report) {
     link.click();
     URL.revokeObjectURL(link.href);
   };
-  buttons.append(back, download);
+  const again = el("button", "New run", "ghost");
+  again.type = "button";
+  again.onclick = () => { resetRun(); showForm(); };
+  buttons.append(back, download, again);
   head.append(left, buttons);
   ledger.append(head);
 
