@@ -46,7 +46,10 @@
     -webkit-mask-size: 100% 100%;
     mask-size: 100% 100%;
   }
-  main { position: relative; z-index: 1; min-height: 100%; padding: 48px 32px 64px; }
+  /* Constellation stays with the graph review; the ledger is plain black for reading. */
+  body.ledger-open::before,
+  body.ledger-open::after { display: none; }
+  main { position: relative; z-index: 1; min-height: 100%; padding: 48px 32px 64px; overflow-x: clip; }
   h1 { font-weight: 500; letter-spacing: 0.08em; font-size: 22px; margin: 0 0 8px; }
   p.lead { margin: 0 0 28px; color: #d0d0d0; max-width: 40rem; }
   form { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
@@ -101,31 +104,41 @@
   #past-runs { margin-top: 36px; max-width: 760px; }
   #past-runs:empty { display: none; }
   #past-runs h3, #ledger h3 { font-weight: 500; letter-spacing: 0.12em; font-size: 13px; margin: 0 0 10px; color: #fff; }
-  .run-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.18); font-size: 13px; color: #d0d0d0; }
-  .run-row .buttons { display: flex; gap: 8px; }
+  .run-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.18); font-size: 13px; color: #d0d0d0; min-width: 0; }
+  .run-row > span { min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
+  .run-row .buttons { display: flex; gap: 8px; flex-shrink: 0; }
   .run-row button, #ledger button, #review-bar button { padding: 7px 16px; font-size: 13px; }
   #review-bar .buttons { display: flex; gap: 10px; }
-  #ledger { display: none; margin-top: 8px; }
+  #ledger { display: none; margin-top: 8px; max-width: 100%; }
   #ledger.show { display: block; }
   .ledger-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
   .ledger-head h2 { font-weight: 500; letter-spacing: 0.14em; font-size: 20px; margin: 0 0 6px; }
-  .ledger-head .scope { color: #cfcfcf; font-size: 13px; line-height: 1.6; }
-  .ledger-head .buttons { display: flex; gap: 10px; }
+  .ledger-head .scope { color: #cfcfcf; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+  .ledger-head .buttons { display: flex; gap: 10px; flex-shrink: 0; }
   .figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: 24px 0 8px; }
-  .figure { border: 1px solid rgba(255,255,255,0.35); border-radius: 16px; padding: 14px 16px; background: rgba(0,0,0,0.6); }
+  .figure { border: 1px solid rgba(255,255,255,0.35); border-radius: 16px; padding: 14px 16px; background: #000; min-width: 0; }
   .figure .label { font-size: 11px; letter-spacing: 0.1em; color: #cfcfcf; text-transform: uppercase; }
-  .figure .value { font-size: 22px; margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
-  .figure .note { font-size: 12px; color: #9e9e9e; }
-  .block { margin-top: 30px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; padding: 16px 18px; }
-  .block ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
-  .block h4 { font-weight: 500; font-size: 13px; letter-spacing: 0.06em; color: #cfcfcf; margin: 14px 0 6px; text-transform: uppercase; }
-  table.lt { width: 100%; border-collapse: collapse; font-size: 13px; }
-  table.lt th { text-align: left; font-weight: 500; color: #cfcfcf; letter-spacing: 0.04em; }
-  table.lt th, table.lt td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.16); vertical-align: top; }
-  table.lt td.num, table.lt th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .figure .value { font-size: 22px; margin: 6px 0 4px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .figure .note { font-size: 12px; color: #9e9e9e; overflow-wrap: anywhere; }
+  .block { margin-top: 30px; background: #000; border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; padding: 16px 18px; max-width: 100%; overflow: hidden; }
+  .block ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+  .block h4 { font-weight: 500; font-size: 13px; letter-spacing: 0.06em; color: #cfcfcf; margin: 14px 0 6px; text-transform: uppercase; overflow-wrap: anywhere; }
+  .table-wrap { width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.lt { width: 100%; min-width: 880px; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+  table.lt th { text-align: left; font-weight: 500; color: #cfcfcf; letter-spacing: 0.04em; hyphens: auto; }
+  table.lt th, table.lt td {
+    padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.16); vertical-align: top;
+    overflow-wrap: anywhere; word-break: break-word; line-height: 1.45;
+  }
+  table.lt td.num, table.lt th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   table.lt tr.finding { cursor: pointer; }
   table.lt tr.finding:hover td { background: rgba(255,255,255,0.06); }
-  table.lt tr.evidence td { color: #bdbdbd; font-size: 12px; word-break: break-all; }
+  table.lt tr.evidence td {
+    color: #bdbdbd; font-size: 12px; background: #050505;
+    white-space: normal; overflow-wrap: anywhere; word-break: break-word;
+  }
+  table.lt tr.evidence .ev-line { display: block; margin: 2px 0; }
+  table.lt tr.evidence .ev-path { color: #9e9e9e; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; }
   table.lt tr.flash td { background: rgba(255,255,255,0.14); }
   .cite { color: #fff; text-decoration: underline; cursor: pointer; font-size: 12px; margin-left: 4px; }
 </style>
@@ -494,6 +507,7 @@ function resetRun() {
   pager.innerHTML = "";
   ledger.innerHTML = "";
   ledger.classList.remove("show");
+  document.body.classList.remove("ledger-open");
   pastRuns.innerHTML = "";
   error.textContent = "";
 }
@@ -694,9 +708,20 @@ const SECTIONS = { summary: "Summary", account_spend: "Account spend", workloads
   savings: "Savings", data_coverage: "Data coverage", asks: "Asks" };
 function money(value, unit) {
   if (value === null || value === undefined) return "n/a";
-  let text = String(value);
+  let text = String(value).trim();
+  if (!text) return "n/a";
   const negative = text.startsWith("-");
   if (negative) text = text.slice(1);
+  // JSON may emit tiny Decimals as scientific notation (for example 0E-1000). BigInt rejects those.
+  if (/[eE]/.test(text)) {
+    const n = Number((negative ? "-" : "") + text);
+    if (!Number.isFinite(n)) return "n/a";
+    const cents = Math.round(Math.abs(n) * 100);
+    const digits = String(cents).padStart(3, "0");
+    const grouped = digits.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return (n < 0 && cents !== 0 ? "-" : "") + (unit ? unit + " " : "") + grouped + "." + digits.slice(-2);
+  }
+  if (!/^\d+(\.\d+)?$/.test(text)) return "n/a";
   const [whole, fraction = ""] = text.split(".");
   const padded = (fraction + "000").slice(0, 3);
   let cents = BigInt(whole + padded.slice(0, 2));
@@ -722,21 +747,35 @@ function block(title) {
   return section;
 }
 function table(headers, numeric) {
+  const wrap = el("div", null, "table-wrap");
   const t = el("table", null, "lt");
   const head = el("tr");
   headers.forEach((h, i) => head.append(el("th", h, numeric.includes(i) ? "num" : "")));
   t.append(head);
-  return t;
+  wrap.append(t);
+  wrap._table = t;
+  return wrap;
 }
-function row(t, cells, numeric, cls) {
+function row(wrap, cells, numeric, cls) {
+  const t = wrap._table || wrap;
   const r = el("tr", null, cls || "");
   cells.forEach((c, i) => {
     const td = el("td", null, numeric.includes(i) ? "num" : "");
-    if (c instanceof Node) td.append(c); else td.textContent = c === null || c === undefined ? "" : c;
+    if (c instanceof Node) td.append(c); else td.textContent = c === null || c === undefined ? "" : String(c);
     r.append(td);
   });
   t.append(r);
   return r;
+}
+function evidenceCell(lines) {
+  const cell = el("td");
+  cell.colSpan = 9;
+  lines.forEach((line) => {
+    if (!line) return;
+    const row = el("span", line.text, line.cls || "ev-line");
+    cell.append(row);
+  });
+  return cell;
 }
 function cites(report, ids) {
   const span = el("span");
@@ -767,6 +806,7 @@ async function openLedger() {
   renderLedger(report);
 }
 function closeLedger() {
+  document.body.classList.remove("ledger-open");
   ledger.classList.remove("show");
   ledger.innerHTML = "";
   renderPage();
@@ -779,6 +819,7 @@ function renderLedger(report) {
   reviewBar.innerHTML = "";
   error.textContent = "";
   ledger.innerHTML = "";
+  document.body.classList.add("ledger-open");
 
   const head = el("div", null, "ledger-head");
   const left = el("div");
@@ -839,7 +880,7 @@ function renderLedger(report) {
 
   if (report.workloads.length) {
     const workloads = block("WORKLOADS");
-    const t = table(["Workload", "Confidence", "Method", "Spend", "Period", "Savings a month (sum of items)", "Findings"], [3, 5]);
+    const t = table(["Workload", "Confidence", "Method", "Spend", "Period", "Savings / mo", "Findings"], [3, 5]);
     report.workloads.forEach((w) => {
       const primary = w.spend.find((s) => s.primary) || { method: "none" };
       row(t, [w.name_hint, w.confidence, primary.method,
@@ -883,19 +924,21 @@ function renderLedger(report) {
       }
       r.dataset.open = "1";
       let anchor = r;
-      const values = Object.entries(f.values).filter(([k]) => k !== "unit" && k !== "amount")
-        .map(([k, v]) => k + " " + (v === null ? "n/a" : v)).join(" · ");
-      const valuesRow = el("tr", null, "evidence");
-      const vcell = el("td", values);
-      vcell.colSpan = 9;
-      valuesRow.append(vcell);
-      anchor.after(valuesRow);
-      anchor = valuesRow;
+      const valueLines = Object.entries(f.values).filter(([k]) => k !== "unit" && k !== "amount")
+        .map(([k, v]) => ({ text: k + " · " + (v === null ? "n/a" : v) }));
+      if (valueLines.length) {
+        const valuesRow = el("tr", null, "evidence");
+        valuesRow.append(evidenceCell(valueLines));
+        anchor.after(valuesRow);
+        anchor = valuesRow;
+      }
       (report.evidence_index[f.finding_id] || []).forEach((ev) => {
         const er = el("tr", null, "evidence");
-        const cell = el("td", ev.source + " · " + ev.snapshot_id + " " + ev.pointer + " · " + ev.detail);
-        cell.colSpan = 9;
-        er.append(cell);
+        er.append(evidenceCell([
+          { text: ev.source.replace(/_/g, " ") + " · " + ev.snapshot_id },
+          { text: ev.pointer, cls: "ev-line ev-path" },
+          { text: ev.detail },
+        ]));
         anchor.after(er);
         anchor = er;
       });
