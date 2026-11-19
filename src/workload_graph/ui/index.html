@@ -531,7 +531,7 @@ function renderAccountFilter() {
   run.accounts.forEach((accountId) => {
     const option = document.createElement("option");
     option.value = accountId;
-    option.textContent = accountId + " - " + region;
+    option.textContent = accountId + " - [" + region + "]";
     if (accountId === run.filterAccount) option.selected = true;
     select.append(option);
   });
