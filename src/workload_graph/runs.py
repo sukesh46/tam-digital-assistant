@@ -24,6 +24,7 @@ from typing import Any, Protocol
 import boto3
 
 from workload_graph.credentials import (
+    CLIENT_CONFIG,
     TAM_ROLE_NAME,
     AmbientCredentials,
     AssumedRoleCredentials,
@@ -44,7 +45,7 @@ from workload_graph.ruleset import Ruleset
 
 def _sts_for(region: str) -> Any:
     factory: Any = boto3.client
-    return factory("sts", region_name=region)
+    return factory("sts", region_name=region, config=CLIENT_CONFIG)
 
 
 class RunPlanner(Protocol):

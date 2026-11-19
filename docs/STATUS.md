@@ -17,7 +17,7 @@
 | types-networkx | 3.6.1.20261114 |
 | pyarrow (optional extra) | 26.0.1 |
 
-`make check` (ruff, strict mypy, pytest): **510 passed, 0 skipped, 0 failed**. Line coverage of `src/workload_graph` is 93%. (The count was 466 at the start of the multi-account step on `tam-v1`, and 461 before the UI and edge-list changes.) `graph/`, `normalisers/`, `models/`, `ids.py` and `ruleset.py` are each above 90% (`normalisers/topology.py` is 91%, `normalisers/cloudtrail.py` is 98%).
+`make check` (ruff, strict mypy, pytest): **519 passed, 0 skipped, 0 failed**. Line coverage of `src/workload_graph` is 93%. (The count was 466 at the start of the multi-account step on `tam-v1`, and 461 before the UI and edge-list changes.) `graph/`, `normalisers/`, `models/`, `ids.py` and `ruleset.py` are each above 90% (`normalisers/topology.py` is 91%, `normalisers/cloudtrail.py` is 98%).
 
 ## Modules
 

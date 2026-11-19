@@ -26,7 +26,7 @@ def _fixture_planner() -> Any:
 
     class Fixture:
         def prepare(self, accounts: tuple[str, ...], region: str) -> Any:
-            def collect(account_id: str) -> list[RawSnapshot]:
+            def collect(account_id: str, _progress: Any) -> list[RawSnapshot]:
                 return list(snapshots) if account_id == ACCT_A else []
             return collect
 
@@ -95,7 +95,7 @@ def test_assumed_role_planner_refuses_an_account_outside_the_run_before_any_call
     collect = planner.prepare((ACCT_A, ACCT_B), REGION)
     from workload_graph.auth.session import OutOfScopeAccountError
     with pytest.raises(OutOfScopeAccountError):
-        collect(ACCT_C)
+        collect(ACCT_C, lambda _kind, _detail: None)
     stubber.assert_no_pending_responses()
 
 

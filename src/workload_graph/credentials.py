@@ -24,6 +24,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import boto3
+from botocore.config import Config
 
 from workload_graph.auth.session import StsSessionProvider
 from workload_graph.ids import validate_account_id
@@ -31,6 +32,10 @@ from workload_graph.models import Workspace
 
 TAM_ROLE_NAME = "TamReadOnly"
 _REGION = re.compile(r"^[a-z]{2}-[a-z]+-\d$")
+
+# Every client is bounded: a host that does not answer must fail in seconds, not minutes.
+CLIENT_CONFIG = Config(connect_timeout=5, read_timeout=30,
+                       retries={"max_attempts": 1, "mode": "standard"})
 
 # (service, account_id, region) -> boto3-like client. Any: service client types differ.
 ClientFactory = Callable[[str, str, str], Any]
@@ -50,12 +55,12 @@ def validate_region(region: str) -> str:
 def ambient_client(service: str, _account_id: str, region: str) -> Any:
     """Client built from the ambient credential. Any: service client types differ by name."""
     factory: Any = boto3.client
-    return factory(service, region_name=region)
+    return factory(service, region_name=region, config=CLIENT_CONFIG)
 
 
 def _sts_for(region: str) -> Any:
     factory: Any = boto3.client
-    return factory("sts", region_name=region)
+    return factory("sts", region_name=region, config=CLIENT_CONFIG)
 
 
 class AmbientCredentials:
@@ -108,5 +113,5 @@ class AssumedRoleCredentials:
                 aws_secret_access_key=creds.secret_access_key,
                 aws_session_token=creds.session_token,
             )
-            return session.client(service, region_name=region)
+            return session.client(service, region_name=region, config=CLIENT_CONFIG)
         return factory

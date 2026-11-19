@@ -462,6 +462,8 @@ function describe(event) {
   switch (event.kind) {
     case "running": return "run started · " + event.detail;
     case "account_started": return "reading " + id;
+    case "source_started": return "  " + id + " · reading " + event.detail + "…";
+    case "source_done": return "  " + id + " · " + event.detail.replace(":", " → ");
     case "account_collected": return "read " + id + " · " + event.detail;
     case "account_failed": return id + " could not be read · " + event.detail;
     case "building": return "building the graph";

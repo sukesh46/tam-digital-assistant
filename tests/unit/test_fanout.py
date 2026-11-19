@@ -170,7 +170,7 @@ def _fixture_collect(
     accounts_with_data: dict[str, list[RawSnapshot]],
     delays: dict[str, float] | None = None,
 ) -> Any:
-    def collect(account_id: str) -> list[RawSnapshot]:
+    def collect(account_id: str, _progress: Any) -> list[RawSnapshot]:
         if delays and account_id in delays:
             time.sleep(delays[account_id])
         return list(accounts_with_data.get(account_id, []))
@@ -199,7 +199,7 @@ def test_workers_are_bounded() -> None:
     active = 0
     peak = 0
 
-    def collect(_account_id: str) -> list[RawSnapshot]:
+    def collect(_account_id: str, _progress: Any) -> list[RawSnapshot]:
         nonlocal active, peak
         with lock:
             active += 1
@@ -218,10 +218,10 @@ def test_one_failing_account_does_not_stop_the_others() -> None:
     denied = ClientError({"Error": {"Code": "AccessDenied", "Message": "no"}}, "AssumeRole")
     data = {ACCT_A: scenario_snapshots("s1")}
 
-    def collect(account_id: str) -> list[RawSnapshot]:
+    def collect(account_id: str, progress: Any) -> list[RawSnapshot]:
         if account_id == ACCT_B:
             raise denied
-        return _fixture_collect(data)(account_id)
+        return _fixture_collect(data)(account_id, progress)
 
     job, result = _run(collect, (ACCT_A, ACCT_B))
     assert result is not None
@@ -233,7 +233,7 @@ def test_one_failing_account_does_not_stop_the_others() -> None:
 
 
 def test_an_unexpected_error_in_one_account_is_isolated_and_not_leaked() -> None:
-    def collect(account_id: str) -> list[RawSnapshot]:
+    def collect(account_id: str, _progress: Any) -> list[RawSnapshot]:
         raise RuntimeError(f"secret detail about {account_id}")
 
     job, result = _run(collect, (ACCT_A,))
@@ -265,7 +265,7 @@ def test_a_collector_note_carries_its_error_code_into_the_run_notes() -> None:
     noted = snapshots[0].model_copy(
         update={"notes": ["GetResources: failed (ThrottlingException)"]})
 
-    def collect(account_id: str) -> list[RawSnapshot]:
+    def collect(account_id: str, _progress: Any) -> list[RawSnapshot]:
         return [noted, *snapshots[1:]] if account_id == ACCT_A else []
 
     _, result = _run(collect, (ACCT_A,))
@@ -282,3 +282,51 @@ def test_the_joined_build_is_scoped_to_every_requested_account() -> None:
     assert result is not None
     assert all(w.members for w in result.workloads)
     assert {m.key.account_id for w in result.workloads for m in w.members} == {ACCT_A}
+
+
+# --- one account needs no worker thread ------------------------------------------------------
+
+def test_a_single_account_is_collected_on_the_calling_thread() -> None:
+    seen: list[int] = []
+
+    def collect(_account_id: str, _progress: Any) -> list[RawSnapshot]:
+        seen.append(threading.get_ident())
+        return []
+
+    _run(collect, (ACCT_A,), workers=5)
+    assert seen == [threading.get_ident()]
+
+
+def test_one_worker_also_means_no_pool_even_for_several_accounts() -> None:
+    seen: list[int] = []
+
+    def collect(_account_id: str, _progress: Any) -> list[RawSnapshot]:
+        seen.append(threading.get_ident())
+        return []
+
+    _run(collect, (ACCT_A, ACCT_B), workers=1)
+    assert seen == [threading.get_ident()] * 2
+
+
+def test_several_accounts_with_several_workers_use_worker_threads() -> None:
+    seen: set[int] = set()
+
+    def collect(_account_id: str, _progress: Any) -> list[RawSnapshot]:
+        seen.add(threading.get_ident())
+        time.sleep(0.02)
+        return []
+
+    _run(collect, (ACCT_A, ACCT_B, ACCT_C), workers=3)
+    assert threading.get_ident() not in seen
+
+
+def test_progress_reported_by_a_collector_reaches_the_job_event_log() -> None:
+    def collect(account_id: str, progress: Any) -> list[RawSnapshot]:
+        progress("source_started", "tags")
+        progress("source_done", "tags:ok")
+        return []
+
+    job, _ = _run(collect, (ACCT_A,))
+    seen = [(e.kind, e.account_id, e.detail) for e in job.events_after(0)
+            if e.kind.startswith("source_")]
+    assert seen == [("source_started", ACCT_A, "tags"), ("source_done", ACCT_A, "tags:ok")]

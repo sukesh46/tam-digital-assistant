@@ -30,7 +30,7 @@ from workload_graph.auth.session import OutOfScopeAccountError
 from workload_graph.credentials import TAM_ROLE_NAME, ClientFactory, validate_region
 from workload_graph.ids import validate_account_id
 from workload_graph.jobs import Job, JobState
-from workload_graph.live import collect_snapshots
+from workload_graph.live import Progress, collect_snapshots
 from workload_graph.models import BuildResult, RawSnapshot, Workspace
 from workload_graph.pipeline import run_snapshots
 from workload_graph.ruleset import Ruleset
@@ -39,7 +39,7 @@ MAX_ACCOUNTS = 20
 DEFAULT_WORKERS = 5
 
 # account_id -> the snapshots collected for it. Raises on failure; run_fanout isolates that.
-Collector = Callable[[str], list[RawSnapshot]]
+Collector = Callable[[str, Progress], list[RawSnapshot]]
 
 
 def normalise_account_ids(raw: Iterable[str]) -> tuple[str, ...]:
@@ -59,8 +59,8 @@ def collector_for(client_factory: ClientFactory, region: str, ruleset: Ruleset,
                   moment: datetime) -> Collector:
     """A ``Collector`` that runs the four sources for one account with ``client_factory``."""
 
-    def collect(account_id: str) -> list[RawSnapshot]:
-        return collect_snapshots(client_factory, account_id, region, ruleset, moment)
+    def collect(account_id: str, progress: Progress) -> list[RawSnapshot]:
+        return collect_snapshots(client_factory, account_id, region, ruleset, moment, progress)
 
     return collect
 
@@ -81,9 +81,12 @@ def _failure_code(exc: Exception) -> str:
     return type(exc).__name__
 
 
-def _collect_one(account_id: str, collect: Collector) -> AccountOutcome:
+def _collect_one(account_id: str, collect: Collector, job: Job) -> AccountOutcome:
+    def progress(kind: str, detail: str) -> None:
+        job.emit(kind, account_id, detail)
+
     try:
-        return AccountOutcome(account_id, tuple(collect(account_id)), None)
+        return AccountOutcome(account_id, tuple(collect(account_id, progress)), None)
     except Exception as exc:  # isolation: one account must not stop the others
         return AccountOutcome(account_id, (), _failure_code(exc))
 
@@ -112,17 +115,25 @@ def _run(job: Job, accounts: tuple[str, ...], region: str, collect: Collector,
         job.emit("account_started", account_id)
 
     outcomes: dict[str, AccountOutcome] = {}
+
+    def record(outcome: AccountOutcome) -> None:
+        outcomes[outcome.account_id] = outcome
+        if outcome.failure is None:
+            job.emit("account_collected", outcome.account_id, _source_summary(outcome.snapshots))
+        else:
+            job.emit("account_failed", outcome.account_id, outcome.failure)
+
     pool_size = max(1, min(workers, len(accounts)))
-    with ThreadPoolExecutor(max_workers=pool_size) as pool:
-        futures = [pool.submit(_collect_one, account_id, collect) for account_id in accounts]
-        for future in as_completed(futures):
-            outcome = future.result()
-            outcomes[outcome.account_id] = outcome
-            if outcome.failure is None:
-                job.emit("account_collected", outcome.account_id,
-                         _source_summary(outcome.snapshots))
-            else:
-                job.emit("account_failed", outcome.account_id, outcome.failure)
+    if pool_size == 1:
+        # One account, or one worker: nothing to run concurrently, so no pool and no threads.
+        for account_id in accounts:
+            record(_collect_one(account_id, collect, job))
+    else:
+        with ThreadPoolExecutor(max_workers=pool_size) as pool:
+            futures = [pool.submit(_collect_one, account_id, collect, job)
+                       for account_id in accounts]
+            for future in as_completed(futures):
+                record(future.result())
 
     snapshots = [s for account_id in accounts for s in outcomes[account_id].snapshots]
     notes = tuple(_run_notes(accounts, outcomes))

@@ -15,6 +15,7 @@ Notes:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime
 
 from workload_graph.collectors import COLLECTORS
@@ -27,11 +28,15 @@ from workload_graph.credentials import (
 )
 from workload_graph.ids import validate_account_id
 from workload_graph.models import BuildResult, RawSnapshot, Workspace
+from workload_graph.models.snapshot import SourceName
 from workload_graph.normalisers import normalise
 from workload_graph.pipeline import run_snapshots
 from workload_graph.ruleset import Ruleset
 
 _SEED_CAP = 40
+
+# (kind, detail): told when a source starts and finishes. Details are codes, never payloads.
+Progress = Callable[[str, str], None]
 
 
 def _seeds(snapshots: list[RawSnapshot], ruleset: Ruleset) -> tuple[str, ...]:
@@ -49,15 +54,25 @@ def _seeds(snapshots: list[RawSnapshot], ruleset: Ruleset) -> tuple[str, ...]:
 
 
 def collect_snapshots(client_factory: ClientFactory, account_id: str, region: str,
-                      ruleset: Ruleset, moment: datetime) -> list[RawSnapshot]:
-    """Collect the four sources for one account. CloudTrail is seeded from the first three."""
+                      ruleset: Ruleset, moment: datetime,
+                      progress: Progress | None = None) -> list[RawSnapshot]:
+    """Collect the four sources for one account. CloudTrail is seeded from the first three.
+
+    ``progress(kind, detail)`` is told when each source starts and finishes.
+    """
+
+    def run(source: SourceName, scope: CollectionScope) -> RawSnapshot:
+        if progress is not None:
+            progress("source_started", source)
+        snapshot = COLLECTORS[source]().collect(client_factory, account_id, region, scope)
+        if progress is not None:
+            progress("source_done", f"{source}:{snapshot.status}")
+        return snapshot
+
     scope = CollectionScope.from_ruleset(ruleset, moment)
-    snapshots = [
-        COLLECTORS[source]().collect(client_factory, account_id, region, scope)
-        for source in ("tags", "stacks", "topology")
-    ]
+    snapshots = [run(source, scope) for source in ("tags", "stacks", "topology")]
     seeded = CollectionScope.from_ruleset(ruleset, moment, _seeds(snapshots, ruleset))
-    snapshots.append(COLLECTORS["cloudtrail"]().collect(client_factory, account_id, region, seeded))
+    snapshots.append(run("cloudtrail", seeded))
     return snapshots
 
 

@@ -12,6 +12,9 @@ Notes:
       collector's allowlist and anything that looks mutating.
     - Each actual API call (including retries) counts against ``scope.max_calls``.
     - Error notes carry only the operation name and error code, never messages or payloads.
+    - After one connection-level failure (DNS, connect, timeout) every later call to the same
+      endpoint fails at once with no network wait, and the note is written once. Other
+      endpoints are not affected.
 """
 
 from __future__ import annotations
@@ -76,6 +79,18 @@ class OperationFailedError(_OperationError):
     """An operation failed for another reason."""
 
 
+class ConnectionFailedError(OperationFailedError):
+    """The endpoint could not be reached (DNS, connect or timeout).
+
+    ``repeat`` is True when the call was refused locally because an earlier call to the same
+    endpoint already failed this way. No network call is made for a repeat.
+    """
+
+    def __init__(self, operation: str, code: str, repeat: bool = False) -> None:
+        super().__init__(operation, code)
+        self.repeat = repeat
+
+
 @dataclass(frozen=True)
 class CollectionScope:
     """What a collection run may do: time, budget, seeds and CloudTrail settings."""
@@ -114,6 +129,12 @@ class Collector(Protocol):
                 scope: CollectionScope) -> RawSnapshot: ...
 
 
+def _endpoint(client: Any) -> str:
+    """Identify the host a client talks to. Any: boto3 client or a test double."""
+    meta = getattr(client, "meta", None)
+    return str(getattr(meta, "endpoint_url", "") or id(client))
+
+
 def _method_name(client: Any, operation: str) -> str:
     """Map a PascalCase operation to the client's snake_case method. Any: boto3 client."""
     mapping: dict[str, str] = client.meta.method_to_api_mapping
@@ -139,6 +160,8 @@ class CallRecorder:
         self.outcomes: list[str] = []
         self.budget_exhausted = False
         self._denied: set[str] = set()
+        # endpoint -> error code of the first connection failure. Later calls fail without I/O.
+        self._unreachable: dict[str, str] = {}
 
     def call(self, client: Any, operation: str, **kwargs: Any) -> dict[str, Any]:
         """Call one operation with retries. Any: boto3 client, params and response."""
@@ -146,6 +169,9 @@ class CallRecorder:
             raise ForbiddenOperationError(f"{operation} is not an allowed read-only operation")
         if operation in self._denied:
             raise OperationDeniedError(operation, "AccessDenied (earlier call)")
+        endpoint = _endpoint(client)
+        if endpoint in self._unreachable:
+            raise ConnectionFailedError(operation, self._unreachable[endpoint], repeat=True)
         method = getattr(client, _method_name(client, operation))
         for attempt in range(self.scope.max_attempts):
             if self.calls >= self.scope.max_calls:
@@ -166,7 +192,9 @@ class CallRecorder:
                     raise ThrottledOutError(operation, code) from None
                 raise OperationFailedError(operation, code) from None
             except BotoCoreError as exc:
-                raise OperationFailedError(operation, type(exc).__name__) from None
+                code = type(exc).__name__
+                self._unreachable[endpoint] = code
+                raise ConnectionFailedError(operation, code) from None
             return {k: v for k, v in response.items() if k != "ResponseMetadata"}
         raise ThrottledOutError(operation, "Throttling")  # pragma: no cover
 
@@ -214,6 +242,12 @@ class CallRecorder:
             self.outcomes.append("error")
             self.notes.append(f"{exc.operation}: still throttled after "
                               f"{self.scope.max_attempts} attempts ({exc.code})")
+            return True
+        except ConnectionFailedError as exc:
+            self.outcomes.append("error")
+            if not exc.repeat:
+                self.notes.append(f"{exc.operation}: failed ({exc.code}); "
+                                  "later calls to the same endpoint are skipped")
             return True
         except OperationFailedError as exc:
             self.outcomes.append("error")
