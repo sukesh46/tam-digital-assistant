@@ -98,3 +98,71 @@ def cost_snapshot(source: str, account: str, calls: dict[tuple[str, str], list[d
         "collected_at": COLLECTED, "operations_called": sorted({op for op, _ in calls}),
         "payload": payload, "status": status, "notes": [],
     })
+
+
+# --- facts and build results for findings tests ---------------------------------------------
+
+def fact(kind: str, dims: dict[str, str], start: str, end: str, amount: str,
+         unit: str = "USD", estimated: bool = False, ref: str | None = None) -> Any:
+    from workload_graph.cost.models import CostFact
+    from workload_graph.cost.periods import Period
+    from workload_graph.models import Evidence
+
+    period = Period(start=date.fromisoformat(start), end=date.fromisoformat(end))
+    fid = "|".join([kind, start, *[f"{k}={v}" for k, v in sorted(dims.items())]])
+    return CostFact(
+        fact_id=fid, kind=kind, dimensions=dims, period=period, amount=Decimal(amount),
+        unit=unit, estimated=estimated,
+        evidence=Evidence(source="cost_explorer", observed_at=COLLECTED,
+                          raw_ref=ref or f"ce#/{fid}", detail="test fact"))
+
+
+def month(service: str, account: str, start: str, amount: str, **kw: Any) -> Any:
+    from workload_graph.cost.periods import add_months
+
+    first = date.fromisoformat(start)
+    return fact("account_service_month", {"service": service, "linked_account": account},
+                start, add_months(first, 1).isoformat(), amount, **kw)
+
+
+def rkey(name: str, account: str, kind: str = "instance", region: str = "eu-west-1") -> Any:
+    from workload_graph.ids import ResourceKey
+
+    if kind == "bucket":
+        return ResourceKey(account_id=account, region="global", arn=f"arn:aws:s3:::{name}")
+    return ResourceKey(account_id=account, region=region,
+                       arn=f"arn:aws:ec2:{region}:{account}:{kind}/{name}")
+
+
+def workload(wid: str, members: list[tuple[Any, str]], confidence: str = "high",
+             name: str | None = None) -> Any:
+    from workload_graph.models import CandidateWorkload, Member
+
+    return CandidateWorkload(
+        workload_id=wid, name_hint=name or wid, confidence=confidence,
+        accounts=sorted({k.account_id for k, _ in members}), sources_used=["tags"],
+        shared_dependencies=[], external_refs=[], evidence_summary={},
+        members=[Member(key=k, membership=m, reasons=[], evidence=[]) for k, m in members])
+
+
+def build_result(workloads: list[Any], shared: list[Any] = (),  # type: ignore[assignment]
+                 residual: list[Any] = (), unmapped: list[Any] = ()) -> Any:  # type: ignore[assignment]
+    from workload_graph.models import (
+        BuildResult,
+        ProbeResult,
+        ResidualGroup,
+        SharedInfra,
+        Unplaced,
+    )
+
+    groups = []
+    for key in residual:
+        groups.append(ResidualGroup(account_id=key.account_id, region=key.region,
+                                    vpc_id=f"vpc-{key.arn[-4:]}",
+                                    members=[Unplaced(key=key, reason="no_edges")]))
+    return BuildResult(
+        ruleset_version="0.1.0", ruleset_hash="h", workloads=workloads,
+        shared_infrastructure=[SharedInfra(key=k, touches=["w1", "w2"]) for k in shared],
+        residual_groups=groups,
+        unmapped=[Unplaced(key=k, reason="no_edges") for k in unmapped],
+        external_refs=[], probe=ProbeResult(entries=[], notes=[]), notes=[], generated_from=[])

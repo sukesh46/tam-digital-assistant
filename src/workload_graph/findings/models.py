@@ -24,6 +24,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from workload_graph.cost.money import format_money, format_pct
 from workload_graph.models import Evidence
 
+RULE_VERSION = "1"
+
 Tier = Literal["quick_win", "plan_first"]
 Value = str | int | bool | None
 
