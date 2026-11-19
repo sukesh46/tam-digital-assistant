@@ -1,7 +1,8 @@
 """Command-line interface.
 
 Status: partial
-Purpose: ``workload-graph build`` and ``evaluate`` run offline; ``collect`` is not wired.
+Purpose: ``workload-graph build``, ``evaluate`` and ``findings`` run offline; ``collect`` is
+    not wired.
 Inputs: argv.
 Outputs: exit code. 0 on success, 2 on bad input.
 Planned dependencies: argparse, pipeline, evaluation.
@@ -14,6 +15,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
+from datetime import date
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -36,6 +38,13 @@ def _parser() -> argparse.ArgumentParser:
     evaluate_cmd = sub.add_parser("evaluate", help="score a build result against a golden file")
     evaluate_cmd.add_argument("--result", required=True, type=Path)
     evaluate_cmd.add_argument("--golden", required=True, type=Path)
+    findings = sub.add_parser("findings", help="build the cost findings report (offline)")
+    findings.add_argument("--build-result", required=True, type=Path)
+    findings.add_argument("--snapshots", required=True, type=Path)
+    findings.add_argument("--as-of", required=True, type=date.fromisoformat)
+    findings.add_argument("--findings-ruleset", type=Path, default=None)
+    findings.add_argument("--graph-snapshots", type=Path, default=None)
+    findings.add_argument("--out", required=True, type=Path)
     sub.add_parser("collect", help="live collection is not wired")
     ui = sub.add_parser("ui", help="open the local workload graph page")
     ui.add_argument("--port", type=int, default=8765)
@@ -52,6 +61,17 @@ def _build(args: argparse.Namespace) -> int:
     result = run(args.snapshots, ruleset, workspace)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(result.to_json(), encoding="utf-8")
+    return 0
+
+
+def _findings(args: argparse.Namespace) -> int:
+    from workload_graph.pipeline_findings import run_paths
+
+    report = run_paths(args.build_result, args.snapshots, args.as_of,
+                       findings_ruleset=args.findings_ruleset,
+                       graph_snapshots=args.graph_snapshots)
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(report.to_json(), encoding="utf-8")
     return 0
 
 
@@ -83,6 +103,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _build(args)
         if args.command == "evaluate":
             return _evaluate(args)
+        if args.command == "findings":
+            return _findings(args)
     except NotImplementedError:
         raise
     except ValueError as exc:

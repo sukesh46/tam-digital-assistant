@@ -166,3 +166,83 @@ def build_result(workloads: list[Any], shared: list[Any] = (),  # type: ignore[a
         residual_groups=groups,
         unmapped=[Unplaced(key=k, reason="no_edges") for k in unmapped],
         external_refs=[], probe=ProbeResult(entries=[], notes=[]), notes=[], generated_from=[])
+
+
+# --- a full single-account scenario for report tests -----------------------------------------
+
+def scenario(account: str, *, tagged: bool = True, resource_level: bool = True,
+             coh: bool = True) -> tuple[Any, list[RawSnapshot], list[RawSnapshot]]:
+    """``(build_result, cost_snapshots, graph_snapshots)``. Hand-computable figures:
+
+    months Aug/Sep/Oct: EC2 1000/1000/1500, S3 200/200/50, RDS -/-/300; Nov so far EC2 900.
+    Window 2026-11-06..19: 13 days x 10 = 130; resources on day one: i-w1 40, lb 10, i-res 5.
+    Tag app=orders: 300/350/400. Recommendations: r-quick 120 (i-w1), r-plan 80 (i-res),
+    commitment 400; deduplicated total 550.
+    """
+    from workload_graph.cost.labels import (
+        LIST_RECOMMENDATIONS,
+        RESOURCE_COSTS_PREFIX,
+        SPEND_BY_SERVICE,
+        SUMMARY_PREFIX,
+        TAG_KEYS_SEEN,
+        TAG_SPEND_PREFIX,
+        WINDOW_TOTAL,
+    )
+
+    w1, lb, res = rkey("i-w1", account), rkey("lb", account, kind="loadbalancer"), \
+        rkey("i-res", account)
+    built = build_result([workload("w1", [(w1, "declared")], name="orders")], shared=[lb],
+                         residual=[res])
+    months = [("2026-08-01", "2026-09-01", [("Amazon EC2", "1000"), ("Amazon S3", "200")]),
+              ("2026-09-01", "2026-10-01", [("Amazon EC2", "1000"), ("Amazon S3", "200")]),
+              ("2026-10-01", "2026-11-01", [("Amazon EC2", "1500"), ("Amazon S3", "50"),
+                                            ("Amazon RDS", "300")])]
+    spend = [result(s, e, [group([svc, account], amt) for svc, amt in rows])
+             for s, e, rows in months]
+    spend.append(result("2026-11-01", "2026-11-19", [group(["Amazon EC2", account], "900")],
+                        estimated=True))
+    days = [result(f"2026-11-{d:02d}", f"2026-11-{d + 1:02d}", [group([account], "10")])
+            for d in range(6, 19)]
+    calls: dict[tuple[str, str], list[dict[str, Any]]] = {
+        ("GetCostAndUsage", SPEND_BY_SERVICE): [ce_page(spend, SERVICE_ACCOUNT)],
+        ("GetCostAndUsage", WINDOW_TOTAL): [ce_page(days, ACCOUNT_ONLY)],
+        ("GetTags", TAG_KEYS_SEEN): [{"Tags": ["app"] if tagged else [], "ReturnSize": 1,
+                                      "TotalSize": 1}],
+    }
+    statuses: dict[str, tuple[str, str, str]] = {}
+    if tagged:
+        calls[("GetCostAndUsage", f"{TAG_SPEND_PREFIX}app")] = [ce_page(
+            [result(s, e, [group(["app$orders", account], amt)])
+             for (s, e, _), amt in zip(months, ("300", "350", "400"), strict=True)],
+            [("TAG", "app"), ("DIMENSION", "LINKED_ACCOUNT")])]
+    if resource_level:
+        calls[("GetCostAndUsageWithResources", f"{RESOURCE_COSTS_PREFIX}Amazon EC2")] = [ce_page(
+            [result("2026-11-06", "2026-11-07", [group(["i-w1", account], "40"),
+                                                 group([lb.arn, account], "10"),
+                                                 group(["i-res", account], "5")])],
+            RESOURCE_ACCOUNT)]
+    else:
+        statuses[f"{RESOURCE_COSTS_PREFIX}Amazon EC2"] = (
+            "GetCostAndUsageWithResources", "not_enabled", "DataUnavailableException")
+    ce = cost_snapshot("cost_explorer", account, calls, statuses=statuses,
+                       snapshot_id=f"ce-{account}")
+    coh_calls: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    coh_status: dict[str, tuple[str, str, str]] = {}
+    if coh:
+        coh_calls[("ListRecommendations", LIST_RECOMMENDATIONS)] = [{"items": [
+            recommendation("r-quick", account, resource_id="i-w1", savings="120"),
+            recommendation("r-plan", account, resource_id="i-res", savings="80", effort="High"),
+            recommendation("r-sp", account, action="PurchaseSavingsPlans", savings="400")]}]
+        coh_calls[("ListRecommendationSummaries", f"{SUMMARY_PREFIX}{account}")] = [summary("550")]
+    else:
+        coh_status[LIST_RECOMMENDATIONS] = ("ListRecommendations", "not_enabled",
+                                            "AccessDeniedException")
+    hub = cost_snapshot("cost_optimization_hub", account, coh_calls, statuses=coh_status,
+                        snapshot_id=f"coh-{account}")
+    tags = RawSnapshot.model_validate({
+        "snapshot_id": f"tags-{account}", "source": "tags", "account_id": account,
+        "region": "eu-west-1", "collected_at": COLLECTED, "operations_called": ["GetResources"],
+        "payload": {"GetResources": [{"ResourceTagMappingList": [
+            {"ResourceARN": w1.arn, "Tags": [{"Key": "app", "Value": "orders"}]}]}]},
+        "status": "ok", "notes": []})
+    return built, [ce, hub], [tags]
