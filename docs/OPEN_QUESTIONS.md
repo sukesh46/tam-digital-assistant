@@ -14,3 +14,13 @@ Each item is unresolved. The code picks the safest reversible option and records
 10. **Is the evidence cap of 10 enough for a TAM to audit a member?** It is a `SKELETON` (D23).
 11. **What is the lockfile strategy?** `requirements/*.txt` uses ranges, not pins (`# SKELETON` in `requirements/base.txt`).
 12. **VPC Flow Logs, cost, a UI, and LLM naming** were considered and left out of scope. Naming stays a deterministic heuristic until an interface for a later step exists.
+
+## Cost layer
+
+13. **Who owns the management account?** Payer mode (one access account, many linked) and per-account mode are both supported; which one customers use is unknown.
+14. **Will customers activate a workload tag as a cost allocation tag?** Without it, the tag method never applies.
+15. **Should amortised cost be the default metric?** Today it is `UnblendedCost`.
+16. **How should shared infrastructure cost be allocated?** Not allocated (F-D7).
+17. **Do customers' Support plans allow adding Trusted Advisor next?**
+18. **What review format do TAMs want?** The Ledger screen is a first answer.
+19. **What freshness is acceptable for cached cost data?** 24 hours today.

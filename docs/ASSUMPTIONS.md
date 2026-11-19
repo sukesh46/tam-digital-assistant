@@ -20,3 +20,23 @@ Each of these is also marked `# ASSUMPTION:` in code. None of them has been chec
 | Physical ids that are not ARNs, for types outside the small ARN table, become `unresolved:{type}:{id}` | `ids.py` | Which types show up in the first real snapshot |
 
 `known_aws_service_account_ids` is empty on purpose. It is `# TODO(input-needed):`, not an assumption that AWS owns no accounts.
+
+## Cost layer
+
+Numbered as in `COST_FINDINGS_BRIEF.md` Section 3. Each sits behind one function with a pinning test.
+
+| # | Assumption | Where | State |
+|---|---|---|---|
+| 1 | Tag group keys look like `key$value`; untagged is `key$` | `normalisers/cost_explorer.py` (`split_tag_group_key`) | unverified |
+| 2 | `GroupBy` allows at most two definitions | `collectors/cost_explorer.py` | unverified |
+| 3 | `GetCostAndUsageWithResources` needs a `Filter` and a window of at most 14 days | `collectors/cost_explorer.py` | `Filter` verified (botocore marks it required); window unverified |
+| 4 | The errors for "resource-level not enabled" and "hub not opted in" | `findings/ruleset.py` (`not_enabled_matchers`) | unverified; configurable |
+| 5 | Recommendation items carry `resourceArn`, `resourceId`, `region`, `restartNeeded`, `rollbackPossible` and the rest | `normalisers/cost_optimization_hub.py` | verified against botocore's model |
+| 6 | `includeAllRecommendations=false` returns one recommendation per resource | `collectors/cost_optimization_hub.py` | unverified |
+| 7 | `implementationEffort` values are `VeryLow` to `VeryHigh` | `findings/ruleset.py` (`quick_win_efforts`) | unverified |
+| 8 | Commitment action types are `PurchaseSavingsPlans` and `PurchaseReservedInstances` | `findings/ruleset.py` | unverified |
+| 9 | Costs without a resource id use the literal `NoResourceId` | `findings/attribution.py` | unverified |
+| 10 | Cost Explorer and the hub are called on `us-east-1` | `collectors/cost_common.py` | unverified |
+| 11 | `ListRecommendationSummaries` supports `groupBy` `ActionType` | `collectors/cost_optimization_hub.py` | unverified |
+| 12 | Cost Explorer charges per paginated request | call budget, cache | unverified |
+| 13 | A hub timestamp without a timezone is UTC | `normalisers/cost_optimization_hub.py` | unverified |

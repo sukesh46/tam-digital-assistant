@@ -17,7 +17,7 @@
 | types-networkx | 3.6.1.20261114 |
 | pyarrow (optional extra) | 26.0.1 |
 
-`make check` (ruff, strict mypy, pytest): **530 passed, 0 skipped, 0 failed**. Line coverage of `src/workload_graph` is 93%. (The count was 466 at the start of the multi-account step on `tam-v1`, and 461 before the UI and edge-list changes.) `graph/`, `normalisers/`, `models/`, `ids.py` and `ruleset.py` are each above 90% (`normalisers/topology.py` is 91%, `normalisers/cloudtrail.py` is 98%).
+`make check` (ruff, strict mypy, pytest): **711 passed, 0 skipped, 0 failed**. Line coverage of `src/workload_graph` is 95%. (530 before the cost layer.) (The count was 466 at the start of the multi-account step on `tam-v1`, and 461 before the UI and edge-list changes.) `graph/`, `normalisers/`, `models/`, `ids.py` and `ruleset.py` are each above 90% (`normalisers/topology.py` is 91%, `normalisers/cloudtrail.py` is 98%).
 
 ## Modules
 
@@ -43,7 +43,14 @@
 | 18 | `jobs.py` review decisions | partial | `test_runs_api.py`, `test_runstore.py` | saved under `out/runs/` (D54) |
 | 19 | `runs.py` (registry, ambient and assumed-role planners) | partial | `test_runs_api.py` | assumed-role path run on the test pad with one account, plus one refused account (D50 notes) |
 | 20 | `ui_server.py` JSON routes and page | partial | `test_runs_api.py` (routes); live run checked by hand on the test pad | HTTP handler methods are not unit-tested |
-| 21 | `docs/COST_FINDINGS_BRIEF.md` | saved | none | the cost layer is not built; two checklist lines reworded for the docs guard |
+| 21 | `docs/COST_FINDINGS_BRIEF.md` | saved | none | two checklist lines reworded for the docs guard |
+| 22 | `cost/` (money, periods, models, snapshots, labels, cache) | real | `test_cost_money_periods.py`, `test_cost_models.py`, `test_cost_cache_index.py` | none |
+| 23 | cost collectors (Cost Explorer, Cost Optimization Hub) | real | `test_cost_collectors.py` (Stubber) | not run live; `TamReadOnly` lacks the cost actions (`IAM_PERMISSIONS.md`) |
+| 24 | cost normalisers | real | `test_cost_normalisers.py` | assumptions 1, 9, 13 |
+| 25 | `findings/` (index, attribution, drivers, savings, data quality, asks, build) | real | `test_findings_attribution.py`, `test_findings_rules.py` | every threshold provisional |
+| 26 | `report/` (models, template narrator, guardrail, assembly) | real; model narrator `SKELETON` | `test_findings_report.py` | none |
+| 27 | `pipeline_findings.py`, `workload-graph findings` | real | `test_findings_report.py`, `test_cost_scenarios.py` (C1–C18, invariants) | F18 and F19 (optional) not built |
+| 28 | cost review after approval, Ledger screen | not built | none | next steps |
 
 `models/workspace.py` is partial: the role name default is a placeholder. `graph/naming.py` is partial for the same reason as the name-hint skeleton.
 

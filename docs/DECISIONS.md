@@ -65,3 +65,35 @@ Every decision is **provisional**. Revisit the ones marked with a trigger in the
 | D52 | Every AWS client is built with a 5 s connect timeout, a 30 s read timeout and one retry. After one connection-level failure (DNS, connect, timeout) the recorder refuses later calls to the same endpoint with no I/O and writes one note. Other endpoints are not affected | A host that did not resolve made the run appear stuck: one failing call per seed, each with the default retries and no timeout. Now it costs one call | provisional | A source needs longer than 30 s for one call |
 | D53 | Collectors report `source_started` and `source_done` (with status code) through a progress callback, and these appear in the job's event log and on the page | A slow source must look like progress, not a frozen page | provisional | The event log grows too large for one run |
 | D54 | Runs are saved under `out/runs/<run id>/run.json` (gitignored) at start, when they settle and on every decision, written through a temporary file and a rename. A run saved before it settled is restored as `failed` with detail `interrupted`. `GET /api/runs` lists them newest first | Reviews must survive a restart, and the cost review and Ledger read approved runs. `out/` is gitignored, so account ids stay out of the repo | provisional | Runs are shared between TAMs (then a database) |
+
+## Cost layer (from `COST_FINDINGS_BRIEF.md`)
+
+| # | Decision | Reason | Status | Revisit when |
+|---|---|---|---|---|
+| F-D1 | `Decimal` everywhere for money, ratios and percentages | Floats corrupt sums and break exact reconciliation | provisional | Never |
+| F-D2 | Cost snapshots load with `parse_float=Decimal`; collectors decimalise responses before storing | boto3 parses JSON doubles as floats | provisional | Never |
+| F-D3 | Cents rounding only at presentation (`ROUND_HALF_UP`) | Avoids accumulated rounding error | provisional | Never |
+| F-D4 | Separate `FindingsRuleset` with its own version and hash | The workload `Ruleset` stays untouched; both hashes appear in the report | provisional | Rulesets merge |
+| F-D5 | Attribution ladder: tag > resource-level > sole-workload account > none | Strongest and longest window first; tag and resource-level both shown | provisional | Better evidence |
+| F-D6 | Buckets: workload, shared, unplaced, unknown, no_resource_id, unexplained | Every dollar of the window total lands somewhere | provisional | None |
+| F-D7 | No cost allocation to shared infrastructure (`# DECISION-PENDING:`) | Allocation is a business decision | provisional | Customers specify a rule |
+| F-D8 | Month-over-month on complete months only; current month alone, estimated | Partial months mislead | provisional | None |
+| F-D9 | Account-level drivers only | Two group-bys cannot hold workload, service and account | provisional | Resource-level data is reliable |
+| F-D10 | Commitment recommendations are account-level | They are purchases, not resource changes | provisional | None |
+| F-D11 | The hub's deduplicated summary is the only savings total | Item sums double count | provisional | None |
+| F-D12 | Lexicographic ordering inside sections; no weighted score | No invented weights | provisional | TAM feedback |
+| F-D13 | Confidence = min(workload confidence, method confidence) | Never inflates | provisional | Calibration data |
+| F-D14 | The guardrail blocks causal language; "driven by" only for drivers | No finding supports a cause | provisional | A finding gains causal evidence |
+| F-D15 | Template narrator is default and fallback; the model narrator is a stub | Deterministic and testable | provisional | The model step is approved |
+| F-D16 | Snapshot cache keyed by (source, access account, label, params, as_of), 24-hour TTL, injected clock | Limits per-request cost | provisional | Pricing changes |
+| F-D17 | Resource-level window 13 days | The documented limit is 14; edge semantics unverified | provisional | The bound is verified |
+| D55 | Live UI and wiring are built although the brief excludes them | The operator asked for cost review after approval and a Ledger screen. The offline core was built to the brief first | provisional | The brief is revised |
+| D56 | Cost sources are not added to the graph `SOURCES`; the graph loader skips `cost_explorer.json` and `cost_optimization_hub.json` silently. `COST_SOURCES` lists them | The graph probe must not report cost files as unknown or missing | provisional | One loader serves both |
+| D57 | Cost payload keys are `"<Operation>:<label>"`, and each snapshot carries `_labels` with a status per call (ok, empty, denied, not_enabled, partial, error, skipped) | Coverage must show `not_enabled` per call, which the snapshot status cannot | provisional | Snapshots gain structured metadata |
+| D58 | `CallRecorder` takes an optional `not_enabled` matcher, checked before the denial check | The "not enabled" errors are unverified (assumption 4); one configurable hook keeps that in the ruleset | provisional | The errors are verified |
+| D59 | A denial is remembered per operation, so a second label on the same operation is skipped | IAM grants per action, so the second call would fail the same way | provisional | Labels need separate permissions |
+| D60 | The aggregate spend scope exists only with more than one account | With one account it would duplicate the account finding | provisional | TAMs want it always |
+| D61 | Members of workloads that were not approved count as `unplaced`; tags come from an optional map built from graph snapshots | Only approved workloads are reviewed (D46). `BuildResult` holds no tags | provisional | `BuildResult` carries tags |
+| D62 | `build_result_sha256` hashes the build result with every list sorted | Report bytes must not depend on input order (F16) | provisional | List order becomes meaningful |
+| D63 | Money mismatch raises `CurrencyMismatchError`; tests stay flat in `tests/unit/` with builders in `tests/wg_cost_builders.py`; no frozen scenario JSON; boto3-stubs extras not added | Matches existing conventions; one fixture source | provisional | Fixtures need freezing |
+| D64 | The guardrail ignores dates, finding ids, account ids in scope, workload names and the cited findings' non-numeric strings before checking bare integers. Money and percentages are checked first | Service names such as "Route 53" and the unit "USD" must not count as numbers or hide them | provisional | A false accept is found |
